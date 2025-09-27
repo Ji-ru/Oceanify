@@ -1,9 +1,9 @@
 import React from "react";
-import MapComponent from "../components/MapComponent";
+import WindyMap from "../components/MapComponent";
 export default function UserPage2() {
   return (
     <div>
-      <MapComponent />
+      <WindyMap />
     </div>
   );
 }

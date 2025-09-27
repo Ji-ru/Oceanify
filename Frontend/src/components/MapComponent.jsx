@@ -1,214 +1,57 @@
-import { useRef, useEffect, useState } from "react";
-import L from "leaflet";
-import "leaflet.heat";
-import "leaflet/dist/leaflet.css";
-import { temperatureLayer } from "../WeatherServiceLayers/TemperatureLayer";
-import { getWeather } from "../WeatherServiceLayers/WeatherService";
-import { TemperatureHeatmapLayer } from "../WeatherServiceLayers/TemperatureHeatMap";
-import { cities } from "../data/cities";
-import {
-  fetchSeaLevelGridPressure,
-  SeaLevelHeatmapLayerFullMap,
-} from "../WeatherServiceLayers/SeaLevelPressureHeatMap";
-export default function MapComponent() {
-  const temperatureHeatLayerRef = useRef(null);
-  const mapRef = useRef(null);
-  const seaLevelPressureHeatLayerRef = useRef(null);
-  const [isHeatmapVisible, setIsHeatmapVisible] = useState(true);
-  const [activeHeatmap, setActiveHeatmap] = useState("temperature");
-  const [heatmapLoaded, setHeatmapLoaded] = useState(false);
+import { useEffect } from "react";
 
+export default function WindyMap() {
   useEffect(() => {
-    const map = L.map("map").setView([7.908941, 125.078746], 5);
-    mapRef.current = map;
+    // Load Leaflet first
+    const leafletScript = document.createElement("script");
+    leafletScript.src = "https://unpkg.com/leaflet@1.4.0/dist/leaflet.js";
+    leafletScript.async = true;
+    document.body.appendChild(leafletScript);
 
-    // Add OpenStreetMap tiles
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      minZoom: 1,
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
+    leafletScript.onload = () => {
+      // Then load Windy API
+      const windyScript = document.createElement("script");
+      windyScript.src = "https://api.windy.com/assets/map-forecast/libBoot.js";
+      windyScript.async = true;
+      document.body.appendChild(windyScript);
 
-    // Add temperature labels for each city
-    cities.forEach(async (city) => {
-      const temp = (Math.random() * 10 + 25).toFixed(2);
-      const label = temperatureLayer(temp);
-      L.marker([city.lat, city.lon], { icon: label }).addTo(map);
-    });
+      windyScript.onload = () => {
+        if (window.windyInit) {
+          window.windyInit(
+            {
+              key: "ZjlNmMtUzQhafUCxvgB2tlRZntnCZnDP", // ⚠️ replace with your API key
+              lat: 20,
+              lon: 0,
+              zoom: 3,
+              overlay: "wind", // default overlay
+            },
+            (windyAPI) => {
+              const { map, overlays } = windyAPI;
 
-    async function loadHeatmap() {
-      try {
-        // Temperature data (city-based)
-        const tempPromises = cities.map((city) =>
-          getWeather(city.lat, city.lon)
-        );
-        const tempResults = await Promise.all(tempPromises);
-        const cityData = tempResults.map((data, index) => ({
-          lat: cities[index].lat,
-          lon: cities[index].lon,
-          value: data.temperature, 
-        }));
-
-        const temperatureHeatMap = TemperatureHeatmapLayer(cityData);
-        temperatureHeatMap.addTo(mapRef.current);
-        temperatureHeatLayerRef.current = temperatureHeatMap;
-
-        // SEA LEVEL grid points
-        const bounds = map.getBounds();
-        const step = 3;
-        const gridPoints = [];
-        for (
-          let lat = bounds.getSouth();
-          lat <= bounds.getNorth();
-          lat += step
-        ) {
-          for (
-            let lon = bounds.getWest();
-            lon <= bounds.getEast();
-            lon += step
-          ) {
-            gridPoints.push({ lat, lon });
-          }
+              // Enable Wind overlay by default
+              overlays.wind.setEnabled(true);
+              overlays.temp.setEnabled(true);
+              overlays.rain.setEnabled(false);
+              overlays.clouds.setEnabled(false);
+              // Example: log overlay change
+              map.on("overlay:change", (e) => {
+                console.log("Overlay changed:", e.overlay);
+              });
+            }
+          );
         }
-        // Fetch pressure for grid points using the separated function
-        const pressureGrid = await fetchSeaLevelGridPressure(gridPoints);
+      };
+    };
 
-        const seaLevelHeatMap = SeaLevelHeatmapLayerFullMap(pressureGrid);
-        if (seaLevelHeatMap) {
-          seaLevelHeatMap.addTo(mapRef.current);
-          seaLevelPressureHeatLayerRef.current = seaLevelHeatMap;
-        }
-
-        setHeatmapLoaded(true);
-      } catch (err) {
-        console.error("Failed to load heatmaps:", err);
-      }
-    }
-
-    loadHeatmap();
-
-    // Geolocation
-    let userMarker = null;
-    let userCircle = null;
-
-    function success(position) {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      const accuracy = position.coords.accuracy;
-
-      if (userMarker) {
-        map.removeLayer(userMarker);
-        // map.removeLayer(userCircle);
-      }
-
-      userMarker = L.marker([lat, lng]).addTo(map);
-      // userCircle = L.circle([lat, lng], { radius: accuracy }).addTo(map);
-      map.setView([lat, lng], 6);
-    }
-
-    function error(err) {
-      if (err.code === 1) alert("Please allow geolocation access");
-      else alert("Cannot get current location.");
-    }
-
-    navigator.geolocation.watchPosition(success, error);
-
+    // Cleanup on unmount
     return () => {
-      map.remove();
+      document.body.removeChild(leafletScript);
+      const windyScript = document.querySelector(
+        'script[src="https://api.windy.com/assets/map-forecast/libBoot.js"]'
+      );
+      if (windyScript) document.body.removeChild(windyScript);
     };
   }, []);
 
-  const showTemperatureHeatmap = () => {
-    if (!mapRef.current) return;
-
-    if (
-      seaLevelPressureHeatLayerRef.current &&
-      mapRef.current.hasLayer(seaLevelPressureHeatLayerRef.current)
-    ) {
-      mapRef.current.removeLayer(seaLevelPressureHeatLayerRef.current);
-    }
-
-    if (
-      temperatureHeatLayerRef.current &&
-      !mapRef.current.hasLayer(temperatureHeatLayerRef.current)
-    ) {
-      temperatureHeatLayerRef.current.addTo(mapRef.current);
-    }
-
-    setActiveHeatmap("temperature");
-  };
-
-  const showPressureHeatmap = () => {
-    if (!mapRef.current) return;
-
-    if (
-      temperatureHeatLayerRef.current &&
-      mapRef.current.hasLayer(temperatureHeatLayerRef.current)
-    ) {
-      mapRef.current.removeLayer(temperatureHeatLayerRef.current);
-    }
-
-    if (
-      seaLevelPressureHeatLayerRef.current &&
-      !mapRef.current.hasLayer(seaLevelPressureHeatLayerRef.current)
-    ) {
-      seaLevelPressureHeatLayerRef.current.addTo(mapRef.current);
-    }
-
-    setActiveHeatmap("pressure");
-  };
-
-  return (
-    <div style={{ position: "relative", height: "100vh", width: "100%" }}>
-      {/* Map container */}
-      <div id="map" style={{ height: "100%", width: "100%" }}></div>
-
-      {/* Heatmap buttons */}
-      <div
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          zIndex: 1000,
-          display: "flex",
-          flexDirection: "column",
-          pointerEvents: "auto",
-        }}
-      >
-        <button
-          onClick={showTemperatureHeatmap}
-          disabled={!heatmapLoaded}
-          style={{
-            marginBottom: "5px",
-            padding: "8px 12px",
-            border: "none",
-            borderRadius: "6px",
-            background: activeHeatmap === "temperature" ? "#f87171" : "#60a5fa",
-            color: "white",
-            cursor: heatmapLoaded ? "pointer" : "not-allowed",
-            width: "140px",
-          }}
-        >
-          Temperature
-        </button>
-
-        <button
-          onClick={showPressureHeatmap}
-          disabled={!heatmapLoaded}
-          style={{
-            padding: "8px 12px",
-            border: "none",
-            borderRadius: "6px",
-            background: activeHeatmap === "pressure" ? "#f87171" : "#60a5fa",
-            color: "white",
-            cursor: heatmapLoaded ? "pointer" : "not-allowed",
-            width: "140px",
-          }}
-        >
-          Sea Level Pressure
-        </button>
-      </div>
-    </div>
-  );
+  return <div id="windy" style={{ width: "100%", height: "100vh" }}/>;
 }
