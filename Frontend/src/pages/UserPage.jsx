@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
+import MarineVisualizer from "../marineVisualizer/MarineVisualizer";
+
 export default function UserPage() {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -11,6 +13,8 @@ export default function UserPage() {
   const [showPressure, setShowPressure] = useState(false);
   const [showStorm, setShowStorm] = useState(false);
   const navigate = useNavigate();
+  const [selectedLat, setSelectedLat] = useState(null);
+  const [selectedLng, setSelectedLng] = useState(null);
 
   // Helper functions
   function degToCompass(deg) {
@@ -139,12 +143,14 @@ export default function UserPage() {
       // Map click handler: Open-Meteo point & marine lookups
       map.on("click", async (e) => {
         const { lat, lng } = e.latlng;
+        setSelectedLat(lat);
+        setSelectedLng(lng);
         setLoading(true);
 
         try {
           // Open-Meteo URLs: forecast (current) and marine
           const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timezone=auto&wind_speed_unit=kmh&precipitation_unit=mm`;
-          const waveUrl = `https://api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_direction,swell_wave_height,swell_wave_direction,secondary_swell_wave_height,secondary_swell_wave_period&timezone=auto`;
+          const waveUrl = `https://api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_direction,swell_wave_height,swell_wave_direction,secondary_swell_wave_height,secondary_swell_wave_period,sea_level_height_msl,sea_surface_temperature,ocean_current_velocity,ocean_current_direction&current=sea_level_height_msl,ocean_current_direction&timezone=auto`;
           const [weatherResponse, waveResponse] = await Promise.all([
             fetch(weatherUrl),
             fetch(waveUrl),
@@ -576,6 +582,7 @@ export default function UserPage() {
       }}
     >
       <div id="map" style={{ height: "100%", width: "100%" }}></div>
+      <MarineVisualizer lat={selectedLat} lng={selectedLng} />
 
       {/* Loading indicator */}
       {loading && (
@@ -687,44 +694,6 @@ export default function UserPage() {
           ← Account Management
         </button>
       </div>
-
-      {/* Instructions */}
-      {/* <div
-        style={{
-          position: "absolute",
-          bottom: "20px",
-          left: "20px",
-          background: "rgba(0,0,0,0.85)",
-          color: "white",
-          padding: "16px 20px",
-          borderRadius: "12px",
-          fontSize: "14px",
-          maxWidth: "280px",
-          zIndex: 1000,
-          lineHeight: 1.5,
-        }}
-      >
-        <div
-          style={{ fontWeight: "600", marginBottom: "8px", fontSize: "16px" }}
-        >
-          💡 How to use:
-        </div>
-        <div>
-          • Click anywhere to see complete weather & wave data (Open-Meteo)
-        </div>
-        <div>
-          • Toggle temperature/pressure layers ON/OFF (OpenWeatherMap tiles)
-        </div>
-        <div>
-          • Use the Storm button to toggle precipitation, clouds, and wind
-          layers together
-        </div>
-        {!mapLoaded && (
-          <div style={{ marginTop: "8px", fontSize: "12px", opacity: 0.8 }}>
-            Map is loading...
-          </div>
-        )}
-      </div> */}
 
       <style jsx>{`
         @keyframes spin {
