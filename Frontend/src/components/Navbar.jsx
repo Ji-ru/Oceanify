@@ -21,7 +21,7 @@ const Navbar = () => {
         {/* Logo */}
         <Link to="/dashboard" className="flex items-center space-x-3">
           <img src={Logo} className="h-12" alt="Logo" />
-          <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">
+          <span className="self-center text-2xl font-semibold whitespace-nowrap text-white">
             Oceanify
           </span>
         </Link>
@@ -30,26 +30,26 @@ const Navbar = () => {
         <div className="hidden md:flex md:items-center md:space-x-6">
           <Link
             to="/dashboard"
-            className="text-gray-900 duration-300 hover:text-blue-700 dark:text-white"
+            className="text-white duration-300 hover:text-blue-700 dark:text-white"
           >
             Dashboard
           </Link>
           <Link
             to="/accounts-management"
-            className="text-gray-900 duration-300 hover:text-blue-700 dark:text-white"
+            className="text-white duration-300 hover:text-blue-700 dark:text-white"
           >
             Users
           </Link>
           <Link
             to="/alerts-management"
-            className="text-gray-900 duration-300 hover:text-blue-700 dark:text-white"
+            className="text-white duration-300 hover:text-blue-700 dark:text-white"
           >
             Alerts
           </Link>
 
           <Link
             to="/map"
-            className="text-gray-900 duration-300 hover:text-blue-700 dark:text-white"
+            className="text-white duration-300 hover:text-blue-700 dark:text-white"
           >
             Maps
           </Link>
