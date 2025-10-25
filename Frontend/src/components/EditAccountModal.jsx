@@ -4,13 +4,17 @@ import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 import axios from "axios";
+import { useAuth } from "../contexts/AuthContext";
 
 const EditAccountModal = ({ account, onClose, onReload }) => {
   const [form, setForm] = useState({
     email: "",
     first_name: "",
     last_name: "",
+    role: "user",
   });
+  const [loading, setLoading] = useState(false);
+  const { refreshUserRole, user } = useAuth();
 
   useEffect(() => {
     if (account) {
@@ -18,6 +22,7 @@ const EditAccountModal = ({ account, onClose, onReload }) => {
         email: account.email || "",
         first_name: account.first_name || "",
         last_name: account.last_name || "",
+        role: account.role || "user",
       });
     }
   }, [account]);
@@ -26,27 +31,36 @@ const EditAccountModal = ({ account, onClose, onReload }) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-const handleSave = async () => {
-  console.log("Save button clicked");
-  console.log("Saving data:", form);
+  const handleSave = async () => {
+    console.log("Save button clicked");
+    console.log("Saving data:", form);
 
-  try {
-    const response = await axios.post(
-      `http://localhost:8000/api/accounts/${account.id}`,
-      {
-        ...form,
-        _method: "PUT", // Laravel-style method override
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        `http://localhost:8000/api/accounts/${account.id}`,
+        {
+          ...form,
+          _method: "PUT", // Laravel-style method override
+        }
+      );
+
+      console.log("Update response:", response.data);
+      
+      // If the edited account is the current logged-in user, refresh their role
+      if (user && user.id === account.id) {
+        await refreshUserRole();
       }
-    );
-
-    console.log("Update response:", response.data);
-    onReload();
-    onClose();
-  } catch (error) {
-    console.error("Error updating account:", error);
-  }
-};
-
+      
+      onReload();
+      onClose();
+    } catch (error) {
+      console.error("Error updating account:", error);
+      alert("Failed to update account. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Modal show={!!account} onHide={onClose}>
@@ -82,14 +96,29 @@ const handleSave = async () => {
               onChange={handleChange}
             />
           </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>Role <span className="text-danger">*</span></Form.Label>
+            <Form.Select
+              name="role"
+              value={form.role}
+              onChange={handleChange}
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </Form.Select>
+            <Form.Text className="text-muted">
+              <strong>User:</strong> Can access Dashboard and Maps.<br/>
+              <strong>Admin:</strong> Full access including user management and alerts.
+            </Form.Text>
+          </Form.Group>
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="secondary" onClick={onClose} disabled={loading}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={handleSave}>
-          Save Changes
+        <Button variant="primary" onClick={handleSave} disabled={loading}>
+          {loading ? "Saving..." : "Save Changes"}
         </Button>
       </Modal.Footer>
     </Modal>

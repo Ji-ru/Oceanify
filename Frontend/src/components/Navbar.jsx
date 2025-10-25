@@ -4,15 +4,22 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 // Assets / Images
 import Logo from "../assets/images/oceanify.png";
+// Auth
+import { useAuth } from "../contexts/AuthContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const { userRole, signOut, isAdmin } = useAuth();
 
-  // Simple logout: redirect to signin page
-  const handleLogout = () => {
-    // Clear session/local storage if needed here
-    navigate("/signin");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate("/signin");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      navigate("/signin");
+    }
   };
 
   return (
@@ -28,34 +35,54 @@ const Navbar = () => {
 
         {/* Desktop links + logout */}
         <div className="hidden md:flex md:items-center md:space-x-6">
+          {/* Dashboard - Available to all */}
           <Link
             to="/dashboard"
             className="text-white duration-300 hover:text-blue-700 dark:text-white"
           >
             Dashboard
           </Link>
-          <Link
-            to="/accounts-management"
-            className="text-white duration-300 hover:text-blue-700 dark:text-white"
-          >
-            Users
-          </Link>
-          <Link
-            to="/alerts-management"
-            className="text-white duration-300 hover:text-blue-700 dark:text-white"
-          >
-            Alerts
-          </Link>
 
+          {/* Users - Admin Only */}
+          {isAdmin && (
+            <Link
+              to="/accounts-management"
+              className="text-white duration-300 hover:text-blue-700 dark:text-white"
+            >
+              Users
+            </Link>
+          )}
+
+          {/* Alerts - Admin Only */}
+          {isAdmin && (
+            <Link
+              to="/alerts-management"
+              className="text-white duration-300 hover:text-blue-700 dark:text-white"
+            >
+              Alerts
+            </Link>
+          )}
+
+          {/* Maps - Available to all */}
           <Link
             to="/map"
             className="text-white duration-300 hover:text-blue-700 dark:text-white"
           >
             Maps
           </Link>
+
+          {/* Role Badge */}
+          {userRole && (
+            <span className={`px-2 py-1 text-xs font-semibold rounded ${
+              isAdmin ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white'
+            }`}>
+              {userRole.toUpperCase()}
+            </span>
+          )}
+
           <button
             onClick={handleLogout}
-            className="px-3 py-1 text-white duration-300 bg-blue-700 rounded hover:bg-blue-800"
+            className="px-3 py-1 text-white duration-300 bg-red-700 rounded hover:bg-red-800"
           >
             Logout
           </button>
@@ -88,33 +115,56 @@ const Navbar = () => {
       {/* Mobile menu */}
       {isOpen && (
         <div className="p-4 md:hidden bg-gray-50 dark:bg-gray-800">
+          {/* Dashboard - Available to all */}
           <Link
             to="/dashboard"
             className="block py-2 text-gray-900 hover:text-blue-700 dark:text-white"
           >
             Dashboard
           </Link>
-          <Link
-            to="/accounts-management"
-            className="block py-2 text-gray-900 hover:text-blue-700 dark:text-white"
-          >
-            Users
-          </Link>
+
+          {/* Users - Admin Only */}
+          {isAdmin && (
+            <Link
+              to="/accounts-management"
+              className="block py-2 text-gray-900 hover:text-blue-700 dark:text-white"
+            >
+              Users
+            </Link>
+          )}
+
+          {/* Maps - Available to all */}
           <Link
             to="/map"
             className="block py-2 text-gray-900 hover:text-blue-700 dark:text-white"
           >
             Maps
           </Link>
-          <Link
-            to="/alerts-management"
-            className="block py-2 text-gray-900 hover:text-blue-700 dark:text-white"
-          >
-            Alerts
-          </Link>
+
+          {/* Alerts - Admin Only */}
+          {isAdmin && (
+            <Link
+              to="/alerts-management"
+              className="block py-2 text-gray-900 hover:text-blue-700 dark:text-white"
+            >
+              Alerts
+            </Link>
+          )}
+
+          {/* Role Badge */}
+          {userRole && (
+            <div className="py-2">
+              <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                isAdmin ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white'
+              }`}>
+                {userRole.toUpperCase()}
+              </span>
+            </div>
+          )}
+
           <button
             onClick={handleLogout}
-            className="block w-full py-2 mt-2 text-white bg-blue-700 rounded hover:bg-blue-800"
+            className="block w-full py-2 mt-2 text-white bg-red-700 rounded hover:bg-red-800"
           >
             Logout
           </button>

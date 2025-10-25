@@ -4,13 +4,14 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 // Custom components
 import WaveBackground from "../components/WaveBackground";
-// External services / clients
-import supabase from "../supabaseClient";
+// Auth Context
+import { useAuth } from "../contexts/AuthContext";
 //Component
 import SignInButton from "../components/SignInButton";
 
 export default function SignIn() {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,19 +27,31 @@ export default function SignIn() {
     setIsSubmitting(true);
     setErrors(null);
 
+    console.log("🔵 Starting sign in process...");
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log("🔵 Calling signIn with:", formData.email);
+      
+      const result = await signIn({
         email: formData.email,
         password: formData.password,
       });
 
-      if (error) throw error;
+      console.log("🔵 SignIn result:", result);
 
+      if (result?.error) {
+        console.error("🔴 Sign in error:", result.error);
+        throw result.error;
+      }
+
+      console.log("✅ Login successful!");
       alert("Login successful to homepage!");
-      navigate("/dashboard"); // Redirect after login
+      navigate("/dashboard");
     } catch (error) {
+      console.error("🔴 Caught error:", error);
       setErrors(error.message || "Something went wrong");
     } finally {
+      console.log("🔵 Setting isSubmitting to false");
       setIsSubmitting(false);
     }
   };
@@ -106,11 +119,9 @@ export default function SignIn() {
                   className="absolute inset-y-0 flex items-center duration-300 cursor-pointer right-3 text-neutral-500 hover:text-white "
                 >
                   {showPassword ? (
-                    //Visible Toggle
-                    <i class="bi bi-eye"></i>
+                    <i className="bi bi-eye"></i>
                   ) : (
-                    //Hidden Toggle
-                    <i class="bi bi-eye-slash"></i>
+                    <i className="bi bi-eye-slash"></i>
                   )}
                 </button>
               </div>
@@ -118,7 +129,7 @@ export default function SignIn() {
 
             {/* Button */}
             <div>
-              <SignInButton type="submit" className="mt-5">
+              <SignInButton type="submit" className="mt-5" disabled={isSubmitting}>
                 {isSubmitting ? "Logging in..." : "Sign In"}
               </SignInButton>
             </div>
