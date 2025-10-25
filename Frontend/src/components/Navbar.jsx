@@ -21,7 +21,7 @@ const Navbar = () => {
         {/* Logo */}
         <Link to="/dashboard" className="flex items-center space-x-3">
           <img src={Logo} className="h-12" alt="Logo" />
-          <span className="self-center text-2xl font-semibold whitespace-nowrap text-white">
+          <span className="self-center text-2xl font-semibold text-white whitespace-nowrap">
             Oceanify
           </span>
         </Link>
