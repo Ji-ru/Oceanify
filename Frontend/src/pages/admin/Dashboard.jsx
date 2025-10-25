@@ -14,7 +14,16 @@ export default function DashboardPage() {
   const [selectedPort, setSelectedPort] = useState(null);
   const [portLoading, setPortLoading] = useState(false);
 
-  // Get user location first
+  /**
+   * Initalize data fetching
+   * How it works:
+   *  Get's user location using browser's Geolocation API
+   *  @On_Success  fetches weather data for user's coordinates
+   *  @On_Error falls back to default coordinates (Davao)
+   *  @contains nested functions: getUserLocation, fetchesWeatherData, setDemoData (removable/modifiable)
+   *
+   * @param none
+   */
   useEffect(() => {
     const getUserLocation = () => {
       navigator.geolocation.getCurrentPosition(
@@ -36,6 +45,11 @@ export default function DashboardPage() {
       );
     };
 
+    /**
+     * Fetches the weather and wave data
+     * @param {*} lat latitude coordinates of the user's default location
+     * @param {*} lng longitude coordinates of the user's default location
+     */
     const fetchWeatherData = async (lat, lng) => {
       try {
         setLoading(true);
@@ -99,7 +113,15 @@ export default function DashboardPage() {
     getUserLocation();
   }, []);
 
-  // Fetch weather data for selected port
+  /**
+   * Fetches weather data for selected ports
+   * How it works:
+   *  Takes port object using the pre-defined coordinates
+   *  Sets loading states and fetches weather and wave data from Open-Meteo API
+   *  Updates state with new data or shows error
+   * @param port selected port
+   * @returns Weather and Wave data of the selected port
+   */
   const handlePortChange = async (port) => {
     if (!port) return;
 
