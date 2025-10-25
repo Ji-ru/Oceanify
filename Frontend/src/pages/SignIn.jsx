@@ -1,5 +1,5 @@
 // React core
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 // Router
 import { useNavigate, Link } from "react-router-dom";
 // Custom components
@@ -11,11 +11,18 @@ import SignInButton from "../components/SignInButton";
 
 export default function SignIn() {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, user, loading } = useAuth();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,34 +34,35 @@ export default function SignIn() {
     setIsSubmitting(true);
     setErrors(null);
 
-    console.log("🔵 Starting sign in process...");
-
     try {
-      console.log("🔵 Calling signIn with:", formData.email);
-      
       const result = await signIn({
         email: formData.email,
         password: formData.password,
       });
 
-      console.log("🔵 SignIn result:", result);
-
       if (result?.error) {
-        console.error("🔴 Sign in error:", result.error);
         throw result.error;
       }
 
-      console.log("✅ Login successful!");
-      alert("Login successful to homepage!");
-      navigate("/dashboard");
+      // Navigation will happen automatically via the useEffect above
     } catch (error) {
-      console.error("🔴 Caught error:", error);
       setErrors(error.message || "Something went wrong");
     } finally {
-      console.log("🔵 Setting isSubmitting to false");
       setIsSubmitting(false);
     }
   };
+
+  // Show loading spinner while checking auth status
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#0C0623]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+          <p className="text-white">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex items-center justify-center w-full h-screen">
