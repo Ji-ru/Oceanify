@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 export default function AlertMGMT() {
   const [alertMsg, setAlertMsg] = useState("");
@@ -7,7 +13,6 @@ export default function AlertMGMT() {
   const [editingId, setEditingId] = useState(null);
   const [theme, setTheme] = useState("dark");
 
-  // 🔹 Predefined / already-inputted messages
   const predefinedMessages = [
     "⚠️ Strong winds detected — vessels advised to stay in port.",
     "🚨 Tropical storm warning — avoid sailing until further notice.",
@@ -16,7 +21,7 @@ export default function AlertMGMT() {
     "🌀 Typhoon alert — monitor updates and follow safety protocols.",
   ];
 
-  // Load theme
+  // 🔹 Load theme
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
     setTheme(savedTheme);
@@ -30,7 +35,19 @@ export default function AlertMGMT() {
     localStorage.setItem("theme", newTheme);
   };
 
-  // Example auto alert generator
+  // 🔹 Load alerts from Supabase
+  useEffect(() => {
+    const loadAlerts = async () => {
+      const { data, error } = await supabase
+        .from("alerts")
+        .select("*")
+        .order("time", { ascending: false });
+      if (!error && data) setAlertList(data);
+    };
+    loadAlerts();
+  }, []);
+
+  // 🔹 Auto Alert Generator (local)
   useEffect(() => {
     const interval = setInterval(() => {
       const randomStormLevel = Math.floor(Math.random() * 10);
@@ -51,55 +68,35 @@ export default function AlertMGMT() {
   const handleSendAlert = async () => {
     if (!alertMsg.trim()) return;
 
-    const newAlert = {
-      message: alertMsg,
-      type: "custom",
-      time: new Date().toISOString().slice(0, 19).replace("T", " "),
-      // e.g., "2025-10-18 20:58:19"
-    };
-
+    const now = new Date().toISOString().slice(0, 19).replace("T", " ");
     if (editingId) {
-      // Update existing alert locally
-      setAlertList((prev) =>
-        prev.map((alert) =>
-          alert.id === editingId
-            ? { ...alert, message: alertMsg, time: new Date().toISOString() }
-            : alert
-        )
-      );
+      // Update existing alert in Supabase
+      const { error } = await supabase
+        .from("alerts")
+        .update({ message: alertMsg, time: now })
+        .eq("id", editingId);
+      if (!error) {
+        setAlertList((prev) =>
+          prev.map((a) =>
+            a.id === editingId ? { ...a, message: alertMsg, time: now } : a
+          )
+        );
+      }
       setEditingId(null);
       setAlertMsg("");
       return;
     }
 
-    try {
-      // Send POST request to Laravel backend
-      const response = await fetch("http://127.0.0.1:8000/api/alerts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newAlert),
-      });
-
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
-
-      const savedAlert = await response.json();
-      // Laravel should return the saved alert object including an id
-      setAlertList((prev) => [savedAlert, ...prev]);
-      setAlertMsg("");
-    } catch (err) {
-      console.error("Failed to save alert:", err);
-      // fallback: still add locally if backend fails
-      setAlertList((prev) => [{ ...newAlert, id: Date.now() }, ...prev]);
-      setAlertMsg("");
+    // Insert new alert into Supabase
+    const newAlert = { message: alertMsg, type: "custom", time: now };
+    const { data, error } = await supabase.from("alerts").insert([newAlert]).select();
+    if (error) {
+      console.error("Failed to insert alert:", error);
+      setAlertList((prev) => [{ ...newAlert, id: Date.now() }, ...prev]); // fallback
+    } else {
+      setAlertList((prev) => [data[0], ...prev]);
     }
-  };
-
-  // 🔹 Select predefined message
-  const handleSelectMessage = (msg) => {
-    setAlertMsg(msg);
+    setAlertMsg("");
   };
 
   // 🔹 Edit existing alert
@@ -109,8 +106,9 @@ export default function AlertMGMT() {
   };
 
   // 🔹 Delete alert
-  const handleDeleteAlert = (id) => {
-    setAlertList((prev) => prev.filter((alert) => alert.id !== id));
+  const handleDeleteAlert = async (id) => {
+    const { error } = await supabase.from("alerts").delete().eq("id", id);
+    if (!error) setAlertList((prev) => prev.filter((a) => a.id !== id));
   };
 
   return (
@@ -139,7 +137,7 @@ export default function AlertMGMT() {
             Choose Predefined Message
           </label>
           <select
-            onChange={(e) => handleSelectMessage(e.target.value)}
+            onChange={(e) => setAlertMsg(e.target.value)}
             className="w-full mb-3 p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[#0C0623] text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
             value={alertMsg || ""}
           >
@@ -192,7 +190,6 @@ export default function AlertMGMT() {
                   {alert.time} ({alert.type})
                 </small>
 
-                {/* Edit/Delete Buttons */}
                 {alert.type !== "auto" && (
                   <div className="flex gap-2 mt-3">
                     <button
