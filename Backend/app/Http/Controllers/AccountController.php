@@ -26,13 +26,13 @@ class AccountController extends Controller {
 
     public function store(Request $request) {
         return response()->json(
-            $this->supabase->insert($request->only(['first_name', 'last_name', 'email']))
+            $this->supabase->insert($request->only(['first_name', 'last_name', 'email', 'role']))
         );
     }
 
     public function update(Request $request, $id) {
         return response()->json(
-            $this->supabase->update($id, $request->only(['first_name', 'last_name','email']))
+            $this->supabase->update($id, $request->only(['first_name', 'last_name','email', 'role']))
         );
     }
 
