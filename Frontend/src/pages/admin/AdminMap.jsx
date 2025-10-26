@@ -22,8 +22,11 @@ export default function UserPage() {
   const navigate = useNavigate();
   const [selectedLat, setSelectedLat] = useState(null);
   const [selectedLng, setSelectedLng] = useState(null);
-  const [loadingType, setLoadingType] = useState(null); // 'weather' or 'waves'
-  const [clickedLocation, setClickedLocation] = useState(null); // Store clicked location for data type selection
+  const [loadingType, setLoadingType] = useState(null);
+  const [clickedLocation, setClickedLocation] = useState(null);
+  const [forecastData, setForecastData] = useState(null);
+  const [showForecastPanel, setShowForecastPanel] = useState(false);
+  const [showControlsPanel, setShowControlsPanel] = useState(false);
 
   // Convert degrees to compass direction
   const degToCompass = (deg) => {
@@ -50,6 +53,72 @@ export default function UserPage() {
     return directions[idx];
   };
 
+  // Get weather icon based on weather code
+  const getWeatherIcon = (code, isDay = true) => {
+    const weatherIcons = {
+      0: isDay ? "☀️" : "🌙", // Clear sky
+      1: isDay ? "🌤️" : "🌤️", // Mainly clear
+      2: "⛅", // Partly cloudy
+      3: "☁️", // Overcast
+      45: "🌫️", // Fog
+      48: "🌫️", // Depositing rime fog
+      51: "🌦️", // Light drizzle
+      53: "🌦️", // Moderate drizzle
+      55: "🌧️", // Dense drizzle
+      61: "🌦️", // Slight rain
+      63: "🌧️", // Moderate rain
+      65: "🌧️", // Heavy rain
+      71: "🌨️", // Slight snow
+      73: "🌨️", // Moderate snow
+      75: "🌨️", // Heavy snow
+      77: "🌨️", // Snow grains
+      80: "🌦️", // Slight rain showers
+      81: "🌧️", // Moderate rain showers
+      82: "⛈️", // Violent rain showers
+      85: "🌨️", // Slight snow showers
+      86: "🌨️", // Heavy snow showers
+      95: "⛈️", // Thunderstorm
+      96: "⛈️", // Thunderstorm with slight hail
+      99: "⛈️", // Thunderstorm with heavy hail
+    };
+    return weatherIcons[code] || "🌈";
+  };
+
+  // Get weather description
+  const getWeatherDescription = (code) => {
+    const codes = {
+      0: "Clear sky",
+      1: "Mainly clear",
+      2: "Partly cloudy",
+      3: "Overcast",
+      45: "Fog",
+      48: "Depositing rime fog",
+      51: "Light drizzle",
+      53: "Moderate drizzle",
+      55: "Dense drizzle",
+      56: "Light freezing drizzle",
+      57: "Dense freezing drizzle",
+      61: "Slight rain",
+      63: "Moderate rain",
+      65: "Heavy rain",
+      66: "Light freezing rain",
+      67: "Heavy freezing rain",
+      71: "Slight snow",
+      73: "Moderate snow",
+      75: "Heavy snow",
+      77: "Snow grains",
+      80: "Slight rain showers",
+      81: "Moderate rain showers",
+      82: "Violent rain showers",
+      85: "Slight snow showers",
+      86: "Heavy snow showers",
+      95: "Thunderstorm",
+      96: "Thunderstorm with slight hail",
+      99: "Thunderstorm with heavy hail",
+    };
+    return codes[code] || `Code: ${code}`;
+  };
+
   // Get port icon based on port type
   const getPortIcon = (portType) => {
     const L = window.L;
@@ -59,19 +128,19 @@ export default function UserPage() {
       switch (type) {
         case "International Container Port":
         case "International Port":
-          return "#e74c3c"; // Red for major ports
+          return "#e74c3c";
         case "Base Port":
-          return "#3498db"; // Blue for base ports
+          return "#3498db";
         case "Container Terminal":
-          return "#9b59b6"; // Purple for terminals
+          return "#9b59b6";
         case "Terminal Port":
-          return "#f39c12"; // Orange for terminal ports
+          return "#f39c12";
         case "Municipal Port":
-          return "#2ecc71"; // Green for municipal ports
+          return "#2ecc71";
         case "Private Port":
-          return "#95a5a6"; // Gray for private ports
+          return "#95a5a6";
         default:
-          return "#34495e"; // Dark blue for others
+          return "#34495e";
       }
     };
 
@@ -122,218 +191,23 @@ export default function UserPage() {
     });
   };
 
-  // Create wave data popup content
-  const createWavePopup = (
-    waveData,
-    lat,
-    lng,
-    locationName = "Selected Location"
-  ) => {
-    const formatValue = (value, unit = "", decimals = 1) => {
-      if (value === null || value === undefined) return "N/A";
-      if (typeof value === "number") {
-        return decimals === 0
-          ? `${Math.round(value)}${unit}`
-          : `${value.toFixed(decimals)}${unit}`;
+  // Fetch 7-day forecast data
+  const fetchForecastData = async (lat, lng) => {
+    try {
+      const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&timezone=auto`;
+
+      const response = await fetch(forecastUrl);
+      if (response.ok) {
+        const data = await response.json();
+        setForecastData(data);
+        setShowForecastPanel(true);
+        return data;
       }
-      return `${value}${unit}`;
-    };
-
-    console.log("Wave Data for popup:", waveData); // Debug log
-
-    return `
-      <div style="min-width: 280px; padding: 12px;">
-        <div style="text-align: center; margin-bottom: 16px;">
-          <h3 style="margin: 0 0 4px 0; color: #2c3e50; font-size: 18px; font-weight: bold;">
-            🌊 Wave Conditions
-          </h3>
-          <div style="color: #7f8c8d; font-size: 12px;">
-            ${locationName}
-          </div>
-          <div style="color: #95a5a6; font-size: 11px; margin-top: 4px;">
-            ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E
-          </div>
-        </div>
-
-        <div style="background: linear-gradient(135deg, #74b9ff, #0984e3); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <div style="font-size: 24px; font-weight: bold; color: white;">
-                ${formatValue(waveData?.current?.wave_height, " m", 1)}
-              </div>
-              <div style="font-size: 12px; color: rgba(255,255,255,0.9);">Wave Height</div>
-            </div>
-            <div style="font-size: 32px;">🌊</div>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-          <div style="background: #f8f9fa; padding: 8px; border-radius: 6px; text-align: center;">
-            <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">Wave Direction</div>
-            <div style="font-size: 14px; font-weight: bold; color: #2c3e50;">
-              ${degToCompass(waveData?.current?.wave_direction)}
-            </div>
-          </div>
-          <div style="background: #f8f9fa; padding: 8px; border-radius: 6px; text-align: center;">
-            <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">Swell Height</div>
-            <div style="font-size: 14px; font-weight: bold; color: #2c3e50;">
-              ${formatValue(waveData?.current?.swell_wave_height, " m", 1)}
-            </div>
-          </div>
-        </div>
-
-        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-          <div style="font-size: 12px; font-weight: bold; color: #2c3e50; margin-bottom: 8px;">Swell Details</div>
-          <div style="display: grid; gap: 6px;">
-            <div style="display: flex; justify-content: space-between; font-size: 11px;">
-              <span style="color: #7f8c8d;">Primary Direction:</span>
-              <span style="font-weight: bold; color: #2c3e50;">${degToCompass(
-                waveData?.current?.swell_wave_direction
-              )}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 11px;">
-              <span style="color: #7f8c8d;">Secondary Height:</span>
-              <span style="font-weight: bold; color: #2c3e50;">${formatValue(
-                waveData?.current?.secondary_swell_wave_height,
-                " m",
-                1
-              )}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 11px;">
-              <span style="color: #7f8c8d;">Secondary Period:</span>
-              <span style="font-weight: bold; color: #2c3e50;">${formatValue(
-                waveData?.current?.secondary_swell_wave_period,
-                "s",
-                1
-              )}</span>
-            </div>
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 8px;">
-          <button 
-            onclick="window.viewWeatherData(${lat}, ${lng}, '${locationName.replace(
-      /'/g,
-      "\\'"
-    )}')"
-            style="
-              flex: 1;
-              padding: 8px 12px;
-              background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-              color: white;
-              border: none;
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 11px;
-              font-weight: 600;
-            "
-          >
-            View Weather
-          </button>
-          <button 
-            onclick="window.closePopup()"
-            style="
-              padding: 8px 12px;
-              background: #95a5a6;
-              color: white;
-              border: none;
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 11px;
-              font-weight: 600;
-            "
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    `;
-  };
-
-  // Create data type selection popup
-  const createDataTypeSelectionPopup = (lat, lng) => {
-    return `
-      <div style="min-width: 260px; padding: 16px;">
-        <div style="text-align: center; margin-bottom: 16px;">
-          <h3 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 18px; font-weight: bold;">
-            📍 Location Pinned
-          </h3>
-          <div style="color: #7f8c8d; font-size: 12px;">
-            ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E
-          </div>
-          <div style="color: #95a5a6; font-size: 11px; margin-top: 8px;">
-            Choose data to display:
-          </div>
-        </div>
-        
-        <div style="display: grid; gap: 10px;">
-          <button 
-            onclick="window.selectDataType(${lat}, ${lng}, 'weather')"
-            style="
-              padding: 12px 16px;
-              background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-              color: white;
-              border: none;
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 600;
-              transition: all 0.2s ease;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 8px;
-            "
-            onmouseover="this.style.transform='scale(1.02)'"
-            onmouseout="this.style.transform='scale(1)'"
-          >
-            🌤️ Weather Conditions
-          </button>
-          
-          <button 
-            onclick="window.selectDataType(${lat}, ${lng}, 'waves')"
-            style="
-              padding: 12px 16px;
-              background: linear-gradient(135deg, #74b9ff, #0984e3);
-              color: white;
-              border: none;
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 600;
-              transition: all 0.2s ease;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 8px;
-            "
-            onmouseover="this.style.transform='scale(1.02)'"
-            onmouseout="this.style.transform='scale(1)'"
-          >
-            🌊 Wave Conditions
-          </button>
-          
-          <button 
-            onclick="window.closeSelectionPopup()"
-            style="
-              padding: 10px 16px;
-              background: #95a5a6;
-              color: white;
-              border: none;
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 12px;
-              font-weight: 600;
-              transition: all 0.2s ease;
-            "
-            onmouseover="this.style.background='#7f8c8d'"
-            onmouseout="this.style.background='#95a5a6'"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    `;
+      return null;
+    } catch (error) {
+      console.error("Failed to fetch forecast data:", error);
+      return null;
+    }
   };
 
   // Fetch and display data for location
@@ -344,10 +218,11 @@ export default function UserPage() {
     setLoadingType(dataType);
 
     try {
+      // Always fetch forecast data when clicking on map
+      const forecastData = await fetchForecastData(lat, lng);
+
       const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timezone=auto&wind_speed_unit=kmh&precipitation_unit=mm`;
       const waveUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_direction,swell_wave_height,swell_wave_direction,secondary_swell_wave_height,secondary_swell_wave_period&timezone=auto`;
-
-      console.log(`Fetching ${dataType} data for:`, lat, lng); // Debug log
 
       const [weatherResponse, waveResponse] = await Promise.all([
         fetch(weatherUrl),
@@ -358,9 +233,6 @@ export default function UserPage() {
         ? await weatherResponse.json()
         : null;
       const waveData = waveResponse.ok ? await waveResponse.json() : null;
-
-      console.log("Weather Data:", weatherData); // Debug log
-      console.log("Wave Data:", waveData); // Debug log
 
       // Remove previous marker
       if (markerRef.current && mapRef.current.hasLayer(markerRef.current)) {
@@ -380,40 +252,6 @@ export default function UserPage() {
               : `${value.toFixed(decimals)}${unit}`;
           }
           return `${value}${unit}`;
-        };
-
-        const getWeatherDescription = (code) => {
-          const codes = {
-            0: "Clear sky",
-            1: "Mainly clear",
-            2: "Partly cloudy",
-            3: "Overcast",
-            45: "Fog",
-            48: "Depositing rime fog",
-            51: "Light drizzle",
-            53: "Moderate drizzle",
-            55: "Dense drizzle",
-            56: "Light freezing drizzle",
-            57: "Dense freezing drizzle",
-            61: "Slight rain",
-            63: "Moderate rain",
-            65: "Heavy rain",
-            66: "Light freezing rain",
-            67: "Heavy freezing rain",
-            71: "Slight snow",
-            73: "Moderate snow",
-            75: "Heavy snow",
-            77: "Snow grains",
-            80: "Slight rain showers",
-            81: "Moderate rain showers",
-            82: "Violent rain showers",
-            85: "Slight snow showers",
-            86: "Heavy snow showers",
-            95: "Thunderstorm",
-            96: "Thunderstorm with slight hail",
-            99: "Thunderstorm with heavy hail",
-          };
-          return codes[code] || `Code: ${code}`;
         };
 
         const popupContent = createEnhancedPopup(
@@ -444,117 +282,12 @@ export default function UserPage() {
             className: "weather-popup",
           })
           .openPopup();
-      } else if (dataType === "waves") {
-        console.log("Creating wave popup with data:", waveData); // Debug log
-
-        if (waveData?.current) {
-          const wavePopupContent = createWavePopup(
-            waveData,
-            lat,
-            lng,
-            locationName
-          );
-
-          const waveIcon = L.divIcon({
-            html: `<div style="background: linear-gradient(135deg, #74b9ff, #0984e3); color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.3);">${
-              waveData.current.wave_height != null
-                ? waveData.current.wave_height.toFixed(1) + "m"
-                : "🌊"
-            }</div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16],
-            popupAnchor: [0, -16],
-          });
-
-          markerRef.current = L.marker([lat, lng], { icon: waveIcon })
-            .addTo(mapRef.current)
-            .bindPopup(wavePopupContent, {
-              maxWidth: 320,
-              className: "wave-popup",
-            })
-            .openPopup();
-
-          console.log("Wave popup created and opened"); // Debug log
-        } else {
-          // Fallback if wave data is not available
-          const errorPopupContent = `
-            <div style="min-width: 250px; padding: 16px; text-align: center;">
-              <h3 style="color: #e74c3c; margin-bottom: 12px;">🌊 Wave Data Unavailable</h3>
-              <p style="color: #7f8c8d; font-size: 14px; margin-bottom: 16px;">
-                Unable to fetch wave data for this location.
-              </p>
-              <button 
-                onclick="window.viewWeatherData(${lat}, ${lng}, '${locationName.replace(
-            /'/g,
-            "\\'"
-          )}')"
-                style="
-                  padding: 8px 16px;
-                  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-                  color: white;
-                  border: none;
-                  border-radius: 6px;
-                  cursor: pointer;
-                  font-size: 12px;
-                "
-              >
-                Try Weather Data Instead
-              </button>
-            </div>
-          `;
-
-          const errorIcon = L.divIcon({
-            html: `<div style="background: linear-gradient(135deg, #e74c3c, #c0392b); color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.3);">❌</div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16],
-            popupAnchor: [0, -16],
-          });
-
-          markerRef.current = L.marker([lat, lng], { icon: errorIcon })
-            .addTo(mapRef.current)
-            .bindPopup(errorPopupContent, {
-              maxWidth: 300,
-              className: "error-popup",
-            })
-            .openPopup();
-        }
       }
 
       // Center map on selected location
       mapRef.current.setView([lat, lng], 10);
     } catch (err) {
       console.error(`Data fetch failed for location:`, err);
-
-      // Show error popup
-      const L = window.L;
-      if (L && mapRef.current) {
-        const errorPopupContent = `
-          <div style="min-width: 250px; padding: 16px; text-align: center;">
-            <h3 style="color: #e74c3c; margin-bottom: 12px;">⚠️ Data Load Failed</h3>
-            <p style="color: #7f8c8d; font-size: 14px;">
-              Failed to load ${dataType} data. Please try again.
-            </p>
-          </div>
-        `;
-
-        const errorIcon = L.divIcon({
-          html: `<div style="background: linear-gradient(135deg, #e74c3c, #c0392b); color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.3);">❌</div>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-          popupAnchor: [0, -16],
-        });
-
-        if (markerRef.current && mapRef.current.hasLayer(markerRef.current)) {
-          mapRef.current.removeLayer(markerRef.current);
-        }
-
-        markerRef.current = L.marker([lat, lng], { icon: errorIcon })
-          .addTo(mapRef.current)
-          .bindPopup(errorPopupContent, {
-            maxWidth: 300,
-          })
-          .openPopup();
-      }
     } finally {
       setLoading(false);
       setLoadingType(null);
@@ -567,7 +300,6 @@ export default function UserPage() {
     const L = window.L;
     if (!L || !mindanaoPorts?.ports_of_mindanao) return;
 
-    // Clear existing port markers
     removePortMarkers();
 
     mindanaoPorts.ports_of_mindanao.forEach((port) => {
@@ -587,11 +319,6 @@ export default function UserPage() {
             <div style="color: #34495e; font-size: 12px; margin-bottom: 12px;">
               🏷️ Type: ${port.type}
             </div>
-            <div style="color: #7f8c8d; font-size: 11px; margin-bottom: 16px;">
-              Coordinates: ${port.latitude.toFixed(
-                4
-              )}°N, ${port.longitude.toFixed(4)}°E
-            </div>
             
             <div style="display: grid; gap: 8px;">
               <button 
@@ -607,33 +334,9 @@ export default function UserPage() {
                   cursor: pointer;
                   font-size: 12px;
                   font-weight: 600;
-                  transition: all 0.2s ease;
                 "
-                onmouseover="this.style.transform='scale(1.02)'"
-                onmouseout="this.style.transform='scale(1)'"
               >
                 🌤️ View Weather Data
-              </button>
-              
-              <button 
-                onclick="window.viewWaveData(${port.latitude}, ${
-        port.longitude
-      }, '${port.port_name.replace(/'/g, "\\'")}')"
-                style="
-                  padding: 10px 16px;
-                  background: linear-gradient(135deg, #74b9ff, #0984e3);
-                  color: white;
-                  border: none;
-                  border-radius: 8px;
-                  cursor: pointer;
-                  font-size: 12px;
-                  font-weight: 600;
-                  transition: all 0.2s ease;
-                "
-                onmouseover="this.style.transform='scale(1.02)'"
-                onmouseout="this.style.transform='scale(1)'"
-              >
-                🌊 View Wave Data
               </button>
             </div>
           </div>
@@ -642,29 +345,18 @@ export default function UserPage() {
       portMarkersRef.current.push(marker);
     });
 
-    // Add global functions for data selection
+    // Add global functions
     window.viewWeatherData = async (lat, lng, locationName) => {
       await fetchLocationData(lat, lng, locationName, "weather");
     };
 
-    window.viewWaveData = async (lat, lng, locationName) => {
-      await fetchLocationData(lat, lng, locationName, "waves");
-    };
-
-    window.selectDataType = async (lat, lng, dataType) => {
-      await fetchLocationData(lat, lng, "Selected Location", dataType);
+    window.viewDetailedForecast = async (lat, lng, locationName) => {
+      await fetchLocationData(lat, lng, locationName, "weather");
     };
 
     window.closePopup = () => {
       if (markerRef.current) {
         markerRef.current.closePopup();
-      }
-    };
-
-    window.closeSelectionPopup = () => {
-      if (markerRef.current) {
-        mapRef.current.removeLayer(markerRef.current);
-        markerRef.current = null;
       }
     };
   };
@@ -693,6 +385,26 @@ export default function UserPage() {
       addPortMarkers(mapRef.current);
       setShowPorts(true);
     }
+  };
+
+  // Layer toggle helpers
+  const toggleLayer = (layerName, currentState, setState) => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    const layer = map[layerName];
+    if (currentState) {
+      if (map.hasLayer(layer)) map.removeLayer(layer);
+      setState(false);
+    } else {
+      layer?.addTo(map);
+      setState(true);
+    }
+  };
+
+  // Toggle controls panel
+  const toggleControlsPanel = () => {
+    setShowControlsPanel(!showControlsPanel);
   };
 
   useEffect(() => {
@@ -729,12 +441,12 @@ export default function UserPage() {
       const map = L.map("map").setView([8.0, 125.0], 6);
       mapRef.current = map;
 
-      // Base map (blue/dark-themed)
+      // Base map
       L.tileLayer(
         "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png",
         {
           attribution:
-            '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a>',
+            '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>',
         }
       ).addTo(map);
 
@@ -751,14 +463,6 @@ export default function UserPage() {
         `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
         { opacity: 0.6 }
       );
-      const cloudsLayer = L.tileLayer(
-        `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
-        { opacity: 0.6 }
-      );
-      const windLayer = L.tileLayer(
-        `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
-        { opacity: 0.6 }
-      );
 
       // Default: temperature
       tempLayer.addTo(map);
@@ -767,61 +471,19 @@ export default function UserPage() {
       map.tempLayer = tempLayer;
       map.pressureLayer = pressureLayer;
       map.precipitationLayer = precipitationLayer;
-      map.cloudsLayer = cloudsLayer;
-      map.windLayer = windLayer;
 
       setMapLoaded(true);
-
-      // Add port markers
       addPortMarkers(map);
 
-      // Geolocation
-      navigator.geolocation.getCurrentPosition(
-        ({ coords: { latitude, longitude } }) => {
-          const userIcon = L.divIcon({
-            html: `<div style="background-color: #007bff; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-            iconSize: [16, 16],
-            iconAnchor: [8, 8],
-          });
-          L.marker([latitude, longitude], { icon: userIcon })
-            .addTo(map)
-            .bindPopup("📍 Your Location")
-            .openPopup();
-          map.setView([latitude, longitude], 7);
-        },
-        (err) => console.warn("Geolocation error:", err),
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-
-      // Map click handler: Show data type selection
+      // Map click handler
       map.on("click", async (e) => {
         const { lat, lng } = e.latlng;
-        setClickedLocation({ lat, lng });
 
-        // Remove previous marker
-        if (markerRef.current && map.hasLayer(markerRef.current)) {
-          map.removeLayer(markerRef.current);
-          markerRef.current = null;
-        }
+        // Fetch forecast data immediately on click
+        await fetchForecastData(lat, lng);
 
-        const L = window.L;
-        if (!L) return;
-
-        // Create temporary marker for selection
-        const tempIcon = L.divIcon({
-          html: `<div style="background: linear-gradient(135deg, #27ae60, #229954); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);">📍</div>`,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-          popupAnchor: [0, -12],
-        });
-
-        markerRef.current = L.marker([lat, lng], { icon: tempIcon })
-          .addTo(map)
-          .bindPopup(createDataTypeSelectionPopup(lat, lng), {
-            maxWidth: 300,
-            className: "selection-popup",
-          })
-          .openPopup();
+        // Also fetch current weather data
+        await fetchLocationData(lat, lng, "Selected Location", "weather");
       });
     };
 
@@ -829,44 +491,354 @@ export default function UserPage() {
 
     return () => {
       if (mapRef.current) mapRef.current.remove();
-      // Clean up global functions
       delete window.viewWeatherData;
-      delete window.viewWaveData;
-      delete window.selectDataType;
+      delete window.viewDetailedForecast;
       delete window.closePopup;
-      delete window.closeSelectionPopup;
     };
   }, []);
 
-  // Layer toggle helpers
-  const toggleLayer = (layerName, currentState, setState) => {
-    const map = mapRef.current;
-    if (!map || !mapLoaded) return;
+  // Horizontal Forecast Panel Component
+  const ForecastPanel = () => {
+    if (!showForecastPanel || !forecastData?.daily) return null;
 
-    const layer = map[layerName];
-    if (currentState) {
-      if (map.hasLayer(layer)) map.removeLayer(layer);
-      setState(false);
-    } else {
-      layer?.addTo(map);
-      setState(true);
-    }
+    const { daily } = forecastData;
+    const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+    return (
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-1000 max-w-[95vw]">
+        <div className="border shadow-2xl bg-gradient-to-br from-white/10 to-white/5 border-white/20 rounded-2xl backdrop-blur-2xl">
+          <div className="p-4">
+            {/* Header - Glass Morphism Style */}
+            <div className="relative flex items-center justify-center mb-4">
+              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-semibold text-white">
+                  7-DAY FORECAST
+                </h3>
+              </div>
+              {/* Close Button */}
+              <button
+                onClick={() => setShowForecastPanel(false)}
+                className="absolute right-0 flex items-center justify-center w-6 h-6 transition-all duration-200 border rounded-full bg-white/10 hover:bg-white/20 border-white/20"
+              >
+                <svg
+                  className="w-3 h-3 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Horizontal Forecast Items - Glass Morphism Cards */}
+            <div className="flex justify-center gap-2 pb-2 overflow-x-auto scrollbar-hide">
+              {daily.time.slice(0, 7).map((date, index) => {
+                const dayName =
+                  index === 0 ? "TODAY" : days[new Date(date).getDay()];
+                const weatherIcon = getWeatherIcon(
+                  daily.weather_code[index],
+                  true
+                );
+                const maxTemp = Math.round(daily.temperature_2m_max[index]);
+                const minTemp = Math.round(daily.temperature_2m_min[index]);
+                const precipitation =
+                  daily.precipitation_probability_max?.[index] || 0;
+
+                return (
+                  <div
+                    key={index}
+                    className="flex-shrink-0 w-20 p-3 transition-all duration-300 border shadow-lg bg-gradient-to-br from-white/15 to-white/5 border-white/20 rounded-xl backdrop-blur-sm hover:from-white/20 hover:to-white/10 hover:border-white/30"
+                  >
+                    <div className="space-y-2 text-center">
+                      {/* Day */}
+                      <div className="text-xs font-semibold tracking-wide text-white">
+                        {dayName}
+                      </div>
+
+                      {/* Weather Icon */}
+                      <div className="text-2xl filter drop-shadow-lg">
+                        {weatherIcon}
+                      </div>
+
+                      {/* Precipitation - Only show if significant */}
+                      {precipitation > 20 && (
+                        <div className="flex items-center justify-center gap-1 px-2 py-1 text-xs rounded-full text-white/80 bg-white/10">
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+                          </svg>
+                          {precipitation}%
+                        </div>
+                      )}
+
+                      {/* Temperatures */}
+                      <div className="flex items-baseline justify-center gap-2">
+                        <div className="text-lg font-bold text-white drop-shadow-sm">
+                          {maxTemp}°
+                        </div>
+                        <div className="text-sm text-white/60">{minTemp}°</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Hidden Scroll Indicator for Mobile */}
+            <div className="flex justify-center mt-2">
+              <div className="w-20 h-1 rounded-full bg-white/20"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  // Control Panel Component
+  const ControlPanel = () => {
+    if (!showControlsPanel) return null;
+
+    return (
+      <div className="fixed duration-300 top-52 right-4 z-1000 w-80 animate-in slide-in-from-right">
+        <div className="border shadow-2xl bg-gradient-to-br from-white/10 to-white/5 border-white/20 rounded-2xl backdrop-blur-2xl">
+          <div className="p-6">
+            {/* Header - Glass Morphism Style */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full shadow-lg bg-white/80"></div>
+                <h3 className="text-xs font-semibold tracking-wide text-white">
+                  MAP LAYERS
+                </h3>
+              </div>
+              <button
+                onClick={toggleControlsPanel}
+                className="flex items-center justify-center w-6 h-6 transition-all duration-200 border rounded-full bg-white/10 hover:bg-white/20 border-white/20"
+              >
+                <svg
+                  className="w-3 h-3 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Control Items with Better Spacing */}
+            <div className="flex gap-1.5 flex-column">
+              <button
+                onClick={() =>
+                  toggleLayer("tempLayer", showTemperature, setShowTemperature)
+                }
+                className={`w-full px-4 py-2 rounded-4 rounded-2xl font-semibold text-white transition-all duration-300 border-2 backdrop-blur-sm text-left group ${
+                  showTemperature
+                    ? "bg-gradient-to-br from-white/20 to-white/10 border-white/40 shadow-lg"
+                    : "bg-white/5 border-white/25 hover:bg-white/10 hover:border-white/35"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`text-2xl transition-transform duration-300 group-hover:scale-110 ${
+                      showTemperature ? "scale-110" : "scale-100"
+                    }`}
+                  >
+                    🌡️
+                  </div>
+                  <div className="flex-1">
+                    <div className="mb-1 text-sm font-semibold">
+                      Temperature
+                    </div>
+                    <div className="text-xs opacity-70">
+                      {showTemperature
+                        ? "Layer visible on map"
+                        : "Layer hidden"}
+                    </div>
+                  </div>
+                  <div
+                    className={`w-3 h-3 rounded-full border-2 border-white/50 transition-all duration-300 ${
+                      showTemperature
+                        ? "bg-green-400/80 border-green-400"
+                        : "bg-transparent"
+                    }`}
+                  ></div>
+                </div>
+              </button>
+
+              <button
+                onClick={() =>
+                  toggleLayer("pressureLayer", showPressure, setShowPressure)
+                }
+                className={`w-full px-4 py-2 rounded-4 rounded-2xl font-semibold text-white transition-all duration-300 border-2 backdrop-blur-sm text-left group ${
+                  showPressure
+                    ? "bg-gradient-to-br from-white/20 to-white/10 border-white/40 shadow-lg"
+                    : "bg-white/5 border-white/25 hover:bg-white/10 hover:border-white/35"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`text-2xl transition-transform duration-300 group-hover:scale-110 ${
+                      showPressure ? "scale-110" : "scale-100"
+                    }`}
+                  >
+                    📊
+                  </div>
+                  <div className="flex-1">
+                    <div className="mb-1 text-sm font-semibold">Pressure</div>
+                    <div className="text-xs opacity-70">
+                      {showPressure ? "Layer visible on map" : "Layer hidden"}
+                    </div>
+                  </div>
+                  <div
+                    className={`w-3 h-3 rounded-full border-2 border-white/50 transition-all duration-300 ${
+                      showPressure
+                        ? "bg-green-400/80 border-green-400"
+                        : "bg-transparent"
+                    }`}
+                  ></div>
+                </div>
+              </button>
+
+              <button
+                onClick={() =>
+                  toggleLayer("precipitationLayer", showStorm, setShowStorm)
+                }
+                className={`w-full px-4 py-2 rounded-4 rounded-2xl font-semibold text-white transition-all duration-300 border-2 backdrop-blur-sm text-left group ${
+                  showStorm
+                    ? "bg-gradient-to-br from-white/20 to-white/10 border-white/40 shadow-lg"
+                    : "bg-white/5 border-white/25 hover:bg-white/10 hover:border-white/35"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`text-2xl transition-transform duration-300 group-hover:scale-110 ${
+                      showStorm ? "scale-110" : "scale-100"
+                    }`}
+                  >
+                    ⛈️
+                  </div>
+                  <div className="flex-1">
+                    <div className="mb-1 text-sm font-semibold">
+                      Storm Layers
+                    </div>
+                    <div className="text-xs opacity-70">
+                      {showStorm ? "Layer visible on map" : "Layer hidden"}
+                    </div>
+                  </div>
+                  <div
+                    className={`w-3 h-3 rounded-full border-2 border-white/50 transition-all duration-300 ${
+                      showStorm
+                        ? "bg-green-400/80 border-green-400"
+                        : "bg-transparent"
+                    }`}
+                  ></div>
+                </div>
+              </button>
+
+              <button
+                onClick={togglePortMarkers}
+                className={`w-full px-4 py-2 rounded-4 rounded-2xl font-semibold text-white transition-all duration-300 border-2 backdrop-blur-sm text-left group ${
+                  showPorts
+                    ? "bg-gradient-to-br from-white/20 to-white/10 border-white/40 shadow-lg"
+                    : "bg-white/5 border-white/25 hover:bg-white/10 hover:border-white/35"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`text-2xl transition-transform duration-300 group-hover:scale-110 ${
+                      showPorts ? "scale-110" : "scale-100"
+                    }`}
+                  >
+                    ⚓
+                  </div>
+                  <div className="flex-1">
+                    <div className="mb-1 text-sm font-semibold">Ports</div>
+                    <div className="text-xs opacity-70">
+                      {showPorts ? "Markers visible on map" : "Markers hidden"}
+                    </div>
+                  </div>
+                  <div
+                    className={`w-3 h-3 rounded-full border-2 border-white/50 transition-all duration-300 ${
+                      showPorts
+                        ? "bg-green-400/80 border-green-400"
+                        : "bg-transparent"
+                    }`}
+                  ></div>
+                </div>
+              </button>
+
+              {/* Logout Button with Different Styling */}
+              <div className="pt-2">
+                <button
+                  onClick={() => navigate("/")}
+                  className="w-full px-4 py-2 rounded-4 font-semibold text-white transition-all duration-300 border-2 border-white/25 bg-white/5 backdrop-blur-sm text-left group hover:bg-red-500/20 hover:border-red-400/50 hover:scale-[1.02]"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="text-2xl transition-transform duration-300 group-hover:scale-110">
+                      ←
+                    </div>
+                    <div className="flex-1">
+                      <div className="mb-1 text-sm font-semibold">
+                        Account Logout
+                      </div>
+                      <div className="text-xs opacity-70">
+                        Return to login screen
+                      </div>
+                    </div>
+                    <div className="w-3 h-3 bg-transparent border-2 rounded-full border-white/50"></div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  const buttonStyle = (enabled = true) => ({
-    padding: "12px 20px",
-    border: "none",
-    borderRadius: "12px",
-    color: "white",
-    cursor: enabled ? "pointer" : "not-allowed",
-    fontSize: "14px",
-    fontWeight: "600",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-    transition: "all 0.3s ease",
-    minWidth: "160px",
-    marginBottom: "12px",
-    opacity: enabled ? 1 : 0.7,
-  });
+  // Updated Toggle Button with better positioning
+  const ControlToggleButton = () => (
+    <div className="fixed top-24 right-4 z-1000">
+      <button
+        onClick={toggleControlsPanel}
+        className={`p-4 bg-gradient-to-br from-white/10 to-white/5 border rounded-4 backdrop-blur-2xl shadow-2xl hover:scale-105 transition-all duration-300 ${
+          showControlsPanel ? "border-white/30 bg-white/20" : "border-white/20"
+        }`}
+      >
+        {/* Hamburger/Layers Icon */}
+        <div className="relative w-4 h-4">
+          <div
+            className={`absolute left-0 w-6 h-0.5 bg-white transition-all duration-300 ${
+              showControlsPanel ? "rotate-45 top-3" : "top-1"
+            }`}
+          ></div>
+          <div
+            className={`absolute left-0 w-6 h-0.5 bg-white transition-all duration-300 ${
+              showControlsPanel ? "opacity-0" : "opacity-100 top-3"
+            }`}
+          ></div>
+          <div
+            className={`absolute left-0 w-6 h-0.5 bg-white transition-all duration-300 ${
+              showControlsPanel ? "-rotate-45 top-3" : "top-5"
+            }`}
+          ></div>
+        </div>
+      </button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-[#0C0623] to-slate-800">
@@ -877,74 +849,19 @@ export default function UserPage() {
       <div id="map" className="absolute inset-0 z-0 mt-16" />
       <MarineVisualizer lat={selectedLat} lng={selectedLng} />
 
-      {/* Control Panel */}
-      <div className="fixed top-24 right-5 z-1000 w-80">
-        <div className="p-4 border bg-gradient-to-br from-blue-900/40 to-purple-900/20 rounded-2xl border-blue-500/20 backdrop-blur-sm">
-          <div className="space-y-3">
-            <button
-              onClick={() =>
-                toggleLayer("tempLayer", showTemperature, setShowTemperature)
-              }
-              className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 border backdrop-blur-sm ${
-                showTemperature
-                  ? "bg-gradient-to-br from-red-500/80 to-red-600/80 border-red-500/30 hover:border-red-500/60"
-                  : "bg-gray-600/50 border-gray-500/30 hover:border-gray-500/60"
-              }`}
-            >
-              🌡️ Temperature {showTemperature ? "ON" : "OFF"}
-            </button>
+      {/* Control Toggle Button - Always accessible */}
+      <ControlToggleButton />
 
-            <button
-              onClick={() =>
-                toggleLayer("pressureLayer", showPressure, setShowPressure)
-              }
-              className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 border backdrop-blur-sm ${
-                showPressure
-                  ? "bg-gradient-to-br from-purple-500/80 to-purple-600/80 border-purple-500/30 hover:border-purple-500/60"
-                  : "bg-gray-600/50 border-gray-500/30 hover:border-gray-500/60"
-              }`}
-            >
-              📊 Pressure {showPressure ? "ON" : "OFF"}
-            </button>
+      {/* Control Panel - Positioned below the toggle button */}
+      <ControlPanel />
 
-            <button
-              onClick={() =>
-                toggleLayer("precipitationLayer", showStorm, setShowStorm)
-              }
-              className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 border backdrop-blur-sm ${
-                showStorm
-                  ? "bg-gradient-to-br from-indigo-500/80 to-blue-600/80 border-blue-500/30 hover:border-blue-500/60"
-                  : "bg-gray-600/50 border-gray-500/30 hover:border-gray-500/60"
-              }`}
-            >
-              ⛈️ Storm Layers {showStorm ? "ON" : "OFF"}
-            </button>
-
-            <button
-              onClick={togglePortMarkers}
-              className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 border backdrop-blur-sm ${
-                showPorts
-                  ? "bg-gradient-to-br from-green-500/80 to-green-600/80 border-green-500/30 hover:border-green-500/60"
-                  : "bg-gray-600/50 border-gray-500/30 hover:border-gray-500/60"
-              }`}
-            >
-              ⚓ Ports {showPorts ? "ON" : "OFF"}
-            </button>
-
-            <button
-              onClick={() => navigate("/")}
-              className="w-full px-4 py-3 font-semibold text-white transition-all duration-200 border rounded-xl bg-gradient-to-br from-blue-500/80 to-blue-600/80 border-blue-500/30 backdrop-blur-sm hover:border-blue-500/60 hover:scale-105"
-            >
-              ← Account Logout
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Forecast Panel */}
+      <ForecastPanel />
 
       {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="flex items-center gap-4 p-6 border bg-blue-900/90 border-blue-500/50 rounded-2xl backdrop-blur-sm">
+          <div className="flex items-center gap-4 p-6 border border-white/20 bg-white/10 rounded-2xl backdrop-blur-2xl">
             <div className="w-8 h-8 border-b-2 border-white rounded-full animate-spin"></div>
             <div className="text-lg text-white">
               Loading {loadingType === "weather" ? "Weather" : "Wave"} Data...

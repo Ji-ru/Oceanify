@@ -11,4 +11,3 @@ class Alert extends Model
 
     protected $fillable = ['message', 'type', 'time'];
 }
-

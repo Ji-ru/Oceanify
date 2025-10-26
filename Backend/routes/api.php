@@ -17,4 +17,3 @@ Route::delete('/accounts/{id}', [AccountController::class, 'destroy']);
 Route::get('/alerts', [AlertController::class, 'index']);
 Route::post('/alerts', [AlertController::class, 'store']);
 Route::delete('/alerts/{id}', [AlertController::class, 'destroy']);
-
