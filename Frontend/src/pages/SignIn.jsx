@@ -94,7 +94,7 @@ export default function SignIn() {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 gap-5 mb-3">
+          <div className="grid grid-cols-1 gap-2 mb-3">
             {/* Email */}
             <div>
               <label className="block mb-2 text-white text-md">Email</label>
@@ -137,7 +137,11 @@ export default function SignIn() {
 
             {/* Button */}
             <div>
-              <SignInButton type="submit" className="mt-5" disabled={isSubmitting}>
+              <SignInButton
+                type="submit"
+                className="mt-5"
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? "Logging in..." : "Sign In"}
               </SignInButton>
             </div>

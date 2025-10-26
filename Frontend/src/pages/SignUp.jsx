@@ -89,7 +89,7 @@ export default function CreateAccount() {
 
         <form id="account-form" onSubmit={handleSubmit}>
           <div className="mb-3">
-            <div className="flex flex-col gap-5 mb-10">
+            <div className="flex flex-col gap-2 mb-10">
               {" "}
               <div className="grid gap-5 grid-cols1 md:grid-cols-2">
                 {/* First Name */}
@@ -130,7 +130,7 @@ export default function CreateAccount() {
                   />
                 </div>
               </div>
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-2">
                 {" "}
                 {/* Email */}
                 <div>

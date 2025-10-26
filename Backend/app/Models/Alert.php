@@ -9,5 +9,14 @@ class Alert extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['message', 'type', 'time'];
+    protected $fillable = [
+        'title',
+        'message',
+        'type',
+        'time',
+    ];
+
+    protected $casts = [
+        'time' => 'datetime',
+    ];
 }
