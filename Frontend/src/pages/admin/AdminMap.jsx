@@ -8,6 +8,12 @@ import { createEnhancedPopup } from "../../components/PopupContent";
 import MarineVisualizer from "../../marineVisualizer/MarineVisualizer";
 // Ports data
 import mindanaoPorts from "../../data/ports.json";
+import {
+  Thermometer,
+  Gauge,
+  CloudRain,
+  Anchor,
+} from "lucide-react";
 
 export default function UserPage() {
   const mapRef = useRef(null);
@@ -24,6 +30,44 @@ export default function UserPage() {
   const [selectedLng, setSelectedLng] = useState(null);
   const [loadingType, setLoadingType] = useState(null); // 'weather' or 'waves'
   const [clickedLocation, setClickedLocation] = useState(null); // Store clicked location for data type selection
+  const [isOpen, setIsOpen] = useState(false);
+  const toggleMenu = () => setIsOpen(!isOpen);
+
+  const menuItems = [
+    {
+      id: "temperature",
+      icon: <Thermometer className="w-5 h-5" />,
+      label: "Temperature",
+      active: showTemperature,
+      toggle: () =>
+        toggleLayer("tempLayer", showTemperature, setShowTemperature),
+      gradient: "from-red-500 to-orange-500",
+    },
+    {
+      id: "pressure",
+      icon: <Gauge className="w-5 h-5" />,
+      label: "Pressure",
+      active: showPressure,
+      toggle: () => toggleLayer("pressureLayer", showPressure, setShowPressure),
+      gradient: "from-purple-500 to-pink-500",
+    },
+    {
+      id: "storm",
+      icon: <CloudRain className="w-5 h-5" />,
+      label: "Storm Layers",
+      active: showStorm,
+      toggle: () => toggleLayer("precipitationLayer", showStorm, setShowStorm),
+      gradient: "from-indigo-500 to-blue-500",
+    },
+    {
+      id: "ports",
+      icon: <Anchor className="w-5 h-5" />,
+      label: "Ports",
+      active: showPorts,
+      toggle: () => togglePortMarkers(),
+      gradient: "from-green-500 to-emerald-500",
+    },
+  ];
 
   // Convert degrees to compass direction
   const degToCompass = (deg) => {
@@ -878,67 +922,132 @@ export default function UserPage() {
       <MarineVisualizer lat={selectedLat} lng={selectedLng} />
 
       {/* Control Panel */}
-      <div className="fixed top-24 right-5 z-1000 w-80">
-        <div className="p-4 border bg-gradient-to-br from-blue-900/40 to-purple-900/20 rounded-2xl border-blue-500/20 backdrop-blur-sm">
-          <div className="space-y-3">
-            <button
-              onClick={() =>
-                toggleLayer("tempLayer", showTemperature, setShowTemperature)
-              }
-              className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 border backdrop-blur-sm ${
-                showTemperature
-                  ? "bg-gradient-to-br from-red-500/80 to-red-600/80 border-red-500/30 hover:border-red-500/60"
-                  : "bg-gray-600/50 border-gray-500/30 hover:border-gray-500/60"
-              }`}
-            >
-              🌡️ Temperature {showTemperature ? "ON" : "OFF"}
-            </button>
+      <div className="fixed top-20 right-6 z-50">
+        {/* Modern Burger Button */}
+        <button
+          onClick={toggleMenu}
+          className="relative group w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-white/15 active:scale-95"
+        >
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative w-5 h-4">
+              <span
+                className={`absolute left-0 w-full h-0.5 bg-white rounded-full transition-all duration-300 ${
+                  isOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-0"
+                }`}
+              />
+              <span
+                className={`absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-white rounded-full transition-all duration-300 ${
+                  isOpen ? "opacity-0" : "opacity-100"
+                }`}
+              />
+              <span
+                className={`absolute left-0 w-full h-0.5 bg-white rounded-full transition-all duration-300 ${
+                  isOpen ? "top-1/2 -translate-y-1/2 -rotate-45" : "bottom-0"
+                }`}
+              />
+            </div>
+          </div>
 
-            <button
-              onClick={() =>
-                toggleLayer("pressureLayer", showPressure, setShowPressure)
-              }
-              className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 border backdrop-blur-sm ${
-                showPressure
-                  ? "bg-gradient-to-br from-purple-500/80 to-purple-600/80 border-purple-500/30 hover:border-purple-500/60"
-                  : "bg-gray-600/50 border-gray-500/30 hover:border-gray-500/60"
-              }`}
-            >
-              📊 Pressure {showPressure ? "ON" : "OFF"}
-            </button>
+          {/* Ripple effect */}
+          <div className="absolute inset-0 rounded-xl bg-white/0 group-hover:bg-white/5 transition-colors duration-300" />
+        </button>
+        {/* Slide-out Menu */}
+        <div
+          className={`absolute right-0 top-14 w-80 transition-all duration-300 ease-out z-50 ${
+            isOpen
+              ? "translate-x-0 opacity-100"
+              : "translate-x-[120%] opacity-0 pointer-events-none"
+          }`}
+        >
+          <div className="p-6 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-700/50 shadow-2xl">
+            {/* Header */}
+            <div className="pb-4 mb-4 border-b border-slate-600/30">
+              <h3 className="text-lg font-semibold text-white">Map Controls</h3>
+              <p className="mt-1 text-sm text-slate-400">
+                Toggle layers and options
+              </p>
+            </div>
 
-            <button
-              onClick={() =>
-                toggleLayer("precipitationLayer", showStorm, setShowStorm)
-              }
-              className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 border backdrop-blur-sm ${
-                showStorm
-                  ? "bg-gradient-to-br from-indigo-500/80 to-blue-600/80 border-blue-500/30 hover:border-blue-500/60"
-                  : "bg-gray-600/50 border-gray-500/30 hover:border-gray-500/60"
-              }`}
-            >
-              ⛈️ Storm Layers {showStorm ? "ON" : "OFF"}
-            </button>
+            {/* Menu Items */}
+            <div className="space-y-2">
+              {menuItems.map((item, index) => (
+                <button
+                  key={item.id}
+                  onClick={item.toggle}
+                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${
+                    item.active
+                      ? "bg-blue-500/20 border border-blue-500/30 text-white"
+                      : "bg-slate-800/30 text-slate-300 hover:bg-slate-700/50"
+                  }`}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={
+                        item.active ? "text-blue-400" : "text-slate-500"
+                      }
+                    >
+                      {item.icon}
+                    </div>
+                    <span className="text-sm">{item.label}</span>
+                  </div>
 
-            <button
-              onClick={togglePortMarkers}
-              className={`w-full px-4 py-3 rounded-xl font-semibold text-white transition-all duration-200 border backdrop-blur-sm ${
-                showPorts
-                  ? "bg-gradient-to-br from-green-500/80 to-green-600/80 border-green-500/30 hover:border-green-500/60"
-                  : "bg-gray-600/50 border-gray-500/30 hover:border-gray-500/60"
-              }`}
-            >
-              ⚓ Ports {showPorts ? "ON" : "OFF"}
-            </button>
-
-            <button
-              onClick={() => navigate("/")}
-              className="w-full px-4 py-3 font-semibold text-white transition-all duration-200 border rounded-xl bg-gradient-to-br from-blue-500/80 to-blue-600/80 border-blue-500/30 backdrop-blur-sm hover:border-blue-500/60 hover:scale-105"
-            >
-              ← Account Logout
-            </button>
+                  {/* Toggle Switch */}
+                  <div
+                    className={`w-12 h-6 rounded-full transition-colors ${
+                      item.active ? "bg-blue-500" : "bg-slate-600"
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 bg-white rounded-full transition-transform ${
+                        item.active ? "translate-x-7" : "translate-x-1"
+                      }`}
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Backdrop */}
+        {isOpen && (
+          <div
+            onClick={toggleMenu}
+            className="fixed inset-0 bg-black/20 transition-opacity duration-300 z-40"
+            style={{ pointerEvents: isOpen ? "auto" : "none" }}
+          />
+        )}
+
+        <style>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        .animate-slideIn {
+          animation: slideIn 0.3s ease-out forwards;
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+      `}</style>
       </div>
 
       {/* Loading Overlay */}
