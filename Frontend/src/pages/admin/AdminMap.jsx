@@ -514,16 +514,14 @@ export default function AdminMaps() {
               🏷️ Type: ${port.type}
             </div>
             <div style="color: #7f8c8d; font-size: 11px; margin-bottom: 16px;">
-              Coordinates: ${port.latitude.toFixed(
-                4
-              )}°N, ${port.longitude.toFixed(4)}°E
+              Coordinates: ${port.latitude.toFixed(4)}°N, ${port.longitude.toFixed(4)}°E
             </div>
             
             <div style="display: grid; gap: 8px;">
               <button 
                 onclick="window.viewWeatherData(${port.latitude}, ${
-        port.longitude
-      }, '${port.port_name.replace(/'/g, "\\'")}')"
+                port.longitude
+              }, '${port.port_name.replace(/'/g, "\\'")}')"
                 style="
                   padding: 10px 16px;
                   background: linear-gradient(135deg, #ff6b6b, #ee5a52);
@@ -543,8 +541,8 @@ export default function AdminMaps() {
               
               <button 
                 onclick="window.viewWaveData(${port.latitude}, ${
-        port.longitude
-      }, '${port.port_name.replace(/'/g, "\\'")}')"
+                port.longitude
+              }, '${port.port_name.replace(/'/g, "\\'")}')"
                 style="
                   padding: 10px 16px;
                   background: linear-gradient(135deg, #74b9ff, #0984e3);
@@ -787,6 +785,7 @@ export default function AdminMaps() {
         weight: 3,
       }).addTo(mapRef.current);
 
+      // In addWarningMarker function - REMOVE RESCUE BUTTON
       const popupHtml = `
         <div class="min-w-[240px] p-3 bg-gradient-to-br from-orange-900/90 to-yellow-900/70 rounded-xl border border-orange-500/30 backdrop-blur-sm">
           <h3 class="text-white font-bold mb-2 flex items-center gap-2">
@@ -803,16 +802,13 @@ export default function AdminMaps() {
             <div><b>Precip:</b> ${details.precipitation ?? "N/A"} mm</div>
           </div>
           <div class="flex gap-2">
-            <button class="request-rescue-btn flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-red-500 to-red-600 text-white font-semibold border-none cursor-pointer transition-all hover:scale-105" data-lat="${lat}" data-lng="${lng}">
-              Request Rescue
-            </button>
+            <!-- REMOVED RESCUE BUTTON - Not appropriate for storm warnings -->
             <button class="view-more-btn flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-gray-700 to-gray-800 text-white border-none cursor-pointer transition-all hover:scale-105" data-lat="${lat}" data-lng="${lng}">
-              Details
+              View Details
             </button>
           </div>
         </div>
       `;
-
       marker.bindPopup(popupHtml);
       warningMarkersRef.current.push(marker);
     };
@@ -993,6 +989,7 @@ export default function AdminMaps() {
       );
 
       // Map click handler
+      // Map click handler - UPDATED VERSION
       map.on("click", async (e) => {
         const { lat, lng } = e.latlng;
         setSelectedLat(lat);
@@ -1004,7 +1001,7 @@ export default function AdminMaps() {
           await fetchForecastData(lat, lng);
 
           const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timezone=auto&wind_speed_unit=kmh&precipitation_unit=mm`;
-          const waveUrl = `https://api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_direction,swell_wave_height&timezone=auto`;
+          const waveUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_direction,swell_wave_height&timezone=auto`;
 
           const [weatherResponse, waveResponse] = await Promise.all([
             fetch(weatherUrl),
@@ -1015,6 +1012,7 @@ export default function AdminMaps() {
             : null;
           const waveData = waveResponse.ok ? await waveResponse.json() : null;
 
+          // Remove previous marker
           if (markerRef.current && map.hasLayer(markerRef.current)) {
             map.removeLayer(markerRef.current);
             markerRef.current = null;
@@ -1032,42 +1030,110 @@ export default function AdminMaps() {
                   : `${value.toFixed(decimals)}${unit}`
                 : `${value}${unit}`;
 
-            let popupContent = createEnhancedPopup(
-              weatherData,
-              waveData,
-              lat,
-              lng,
-              getWeatherDescription,
-              degToCompass,
-              formatValue
-            );
+            // Create data selection popup instead of directly showing weather data
+            const selectionPopupContent = `
+        <div style="min-width: 280px; padding: 16px;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <h3 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 18px; font-weight: bold;">
+              📍 Location Data
+            </h3>
+            <div style="color: #7f8c8d; font-size: 12px;">
+              ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E
+            </div>
+          </div>
 
-            // Add rescue buttons to popup
-            const customButtons = `
-              <div class="mt-3 flex gap-2">
-                <button class="custom-rescue-btn flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-red-500 to-red-600 text-white font-semibold border-none cursor-pointer transition-all hover:scale-105" data-lat="${lat}" data-lng="${lng}">
-                  Custom Rescue
-                </button>
-                <button class="quick-rescue-btn flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold border-none cursor-pointer transition-all hover:scale-105" data-lat="${lat}" data-lng="${lng}">
-                  Quick Rescue
-                </button>
-              </div>`;
+          <div style="display: grid; gap: 10px; margin-bottom: 16px;">
+            <button 
+              onclick="window.selectDataType(${lat}, ${lng}, 'weather')"
+              style="
+                padding: 12px 16px;
+                background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+              "
+              onmouseover="this.style.transform='scale(1.02)'"
+              onmouseout="this.style.transform='scale(1)'"
+            >
+              🌤️ View Weather Data
+            </button>
+            
+            <button 
+              onclick="window.selectDataType(${lat}, ${lng}, 'waves')"
+              style="
+                padding: 12px 16px;
+                background: linear-gradient(135deg, #74b9ff, #0984e3);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+              "
+              onmouseover="this.style.transform='scale(1.02)'"
+              onmouseout="this.style.transform='scale(1)'"
+            >
+              🌊 View Wave Data
+            </button>
+          </div>
 
-            markerRef.current = window.L.marker([lat, lng], {
-              icon: window.L.divIcon({
-                html: `<div class="weather-marker">${
-                  current.temperature_2m != null
-                    ? Math.round(current.temperature_2m) + "°"
-                    : "?"
-                }</div>`,
-                iconSize: [36, 36],
-                iconAnchor: [18, 18],
-              }),
-            })
+          <!-- Rescue Button - Only in appropriate locations -->
+          <div style="border-top: 1px solid #e9ecef; padding-top: 12px;">
+            <button 
+              onclick="window.requestRescueAtLocation(${lat}, ${lng})"
+              style="
+                width: 100%;
+                padding: 10px 16px;
+                background: linear-gradient(135deg, #dc2626, #b91c1c);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+              "
+              onmouseover="this.style.transform='scale(1.02)'"
+              onmouseout="this.style.transform='scale(1)'"
+            >
+              🆘 Request Emergency Rescue
+            </button>
+            <div style="font-size: 10px; color: #6c757d; text-align: center; margin-top: 6px;">
+              For genuine emergencies only
+            </div>
+          </div>
+        </div>
+      `;
+
+            const selectionIcon = L.divIcon({
+              html: `<div style="background: linear-gradient(135deg, #10b981, #059669); color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.3);">📍</div>`,
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+              popupAnchor: [0, -16],
+            });
+
+            markerRef.current = L.marker([lat, lng], { icon: selectionIcon })
               .addTo(map)
-              .bindPopup(popupContent + customButtons, {
-                maxWidth: 420,
-                className: "weather-popup",
+              .bindPopup(selectionPopupContent, {
+                maxWidth: 320,
+                className: "selection-popup",
               })
               .openPopup();
           }
@@ -1079,41 +1145,26 @@ export default function AdminMaps() {
       });
 
       // Popup event handlers
+      // Popup event handlers - UPDATED VERSION
       map.on("popupopen", function (e) {
         const container = e.popup && e.popup._contentNode;
         if (!container) return;
 
-        const quick = container.querySelector(".quick-rescue-btn");
-        if (quick) {
-          quick.onclick = (ev) => {
-            const lat = parseFloat(quick.dataset.lat);
-            const lng = parseFloat(quick.dataset.lng);
-            requestRescueAt(lat, lng, "Quick rescue (user clicked popup)");
-          };
-        }
+        // Add global function for rescue requests from selection popup
+        window.requestRescueAtLocation = (lat, lng) => {
+          const reason = prompt(
+            "Enter rescue reason (e.g. 'sinking', 'engine malfunction', 'medical emergency'):",
+            "emergency distress"
+          );
+          if (reason) {
+            requestRescueAt(lat, lng, reason);
+          }
+        };
 
-        const customBtn = container.querySelector(".custom-rescue-btn");
-        if (customBtn) {
-          customBtn.onclick = () => {
-            const lat = parseFloat(customBtn.dataset.lat);
-            const lng = parseFloat(customBtn.dataset.lng);
-            const reason = prompt(
-              "Enter rescue reason (e.g. 'sinking', 'engine malfunction', 'medical emergency'):",
-              "sinking"
-            );
-            if (reason) {
-              requestRescueAt(lat, lng, reason);
-            }
-          };
-        }
-
+        // Remove rescue buttons from storm warning popups - they shouldn't be there
         const requestBtn = container.querySelector(".request-rescue-btn");
         if (requestBtn) {
-          requestBtn.onclick = () => {
-            const lat = parseFloat(requestBtn.dataset.lat);
-            const lng = parseFloat(requestBtn.dataset.lng);
-            requestRescueAt(lat, lng, "Storm area rescue request");
-          };
+          requestBtn.style.display = "none"; // Hide rescue button from storm popups
         }
 
         const viewBtn = container.querySelector(".view-more-btn");
