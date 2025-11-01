@@ -14,6 +14,7 @@ import { Droplets, Cloud, Gauge, Eye, Sun, Moon } from "lucide-react";
  * Marine Dashboard - Main weather and safety monitoring interface
  * Displays current marine conditions, weather data, and rescue alerts
  */
+
 export default function DashboardPage() {
   const [userLocation, setUserLocation] = useState(null);
   const [weatherData, setWeatherData] = useState(null);
