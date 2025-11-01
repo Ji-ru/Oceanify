@@ -1,11 +1,10 @@
 // App.jsx
+import { Route, Routes } from "react-router-dom";
 import "./styles/App.css";
-import React from "react";
-import { Routes, Route } from "react-router-dom";
 
 // Context Providers
-import { AuthProvider } from "./contexts/AuthContext";
 import { AccountProvider } from "./contexts/AccountContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -15,8 +14,10 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import AccountMGMT from "./pages/admin/AccountMGMT";
 import AdminMap from "./pages/admin/AdminMap";
-import Dashboard from "./pages/admin/Dashboard";
+import AdminRescueManagement from "./pages/admin/AdminRescueManagement"; // ← ADD THIS
 import AlertMGMT from "./pages/admin/AlertMGMT";
+import Dashboard from "./pages/admin/Dashboard";
+import RescueButton from "./pages/user/RescueButton";
 import UserMap from "./pages/user/UserMap";
 
 function App() {
@@ -54,6 +55,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* 🆘 USER RESCUE PAGE */}
+          <Route
+            path="/rescue"
+            element={
+              <ProtectedRoute>
+                <RescueButton />
+              </ProtectedRoute>
+            }
+          />
 
           {/* -----------------------------
               Protected Pages - Admin Only
@@ -71,6 +82,16 @@ function App() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AlertMGMT />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* 🚨 ADMIN RESCUE MANAGEMENT PAGE - ADD THIS */}
+          <Route
+            path="/rescue-management"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminRescueManagement />
               </ProtectedRoute>
             }
           />
