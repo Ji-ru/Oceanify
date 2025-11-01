@@ -283,124 +283,160 @@ export default function AlertMGMT() {
   };
 
   return (
-    <div className="min-h-screen transition-colors duration-300 bg-gray-100 text-gray-900 dark:bg-[#0C0623] dark:text-white">
-      <Navbar />
-
-      {/* Theme toggle */}
-      <div className="flex justify-end p-4">
-        <button
-          onClick={toggleTheme}
-          className="px-4 py-2 text-sm text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100"
-        >
-          Toggle {theme === "dark" ? "Light" : "Dark"} Mode
-        </button>
+    <div className="min-h-screen bg-[#0f0f0f]">
+      {/* Navbar fixed */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <Navbar />
       </div>
 
-      <div className="flex flex-col items-center justify-center py-6">
-        <h1 className="mb-2 text-3xl font-bold">Alert Management</h1>
-        <p className="mb-6 text-gray-600 dark:text-gray-400">
-          Send, edit, or manage alerts for seafarers
-        </p>
-
-        {/* Input Section */}
-        <div className="bg-white dark:bg-[#1A103A] p-6 rounded-2xl shadow-lg w-[90%] max-w-lg">
-          {/* Alert Title Input */}
-          <div className="mb-4">
-            <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Alert Title *
-            </label>
-            <input
-              type="text"
-              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md text-gray-800 dark:text-white bg-gray-50 dark:bg-[#0C0623] focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="Enter alert title..."
-              value={alertTitle}
-              onChange={(e) => setAlertTitle(e.target.value)}
-            />
+      {/* Content - Added proper top padding to prevent navbar overlap */}
+      <div className="flex items-center justify-center pt-20 mx-auto lg:p-6 lg:pt-28">
+        {" "}
+        <div className="flex flex-col w-full max-w-4xl p-4">
+          {/* Header Section */}
+          <div className="flex flex-col items-start justify-between gap-4 mb-6 lg:flex-row lg:items-center">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold text-white sm:text-3xl">
+                Alert Management
+              </h1>
+              <p className="mt-2 text-sm text-gray-400 sm:text-base">
+                Send, edit, or manage alerts for seafarers
+              </p>
+            </div>
           </div>
 
-          <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Choose Predefined Message
-          </label>
-          <select
-            onChange={(e) => setAlertMsg(e.target.value)}
-            className="w-full mb-3 p-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[#0C0623] text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            value={alertMsg || ""}
-          >
-            <option value="">-- Select a message --</option>
-            {predefinedMessages.map((msg, index) => (
-              <option key={index} value={msg}>
-                {msg.length > 60 ? msg.slice(0, 60) + "..." : msg}
-              </option>
-            ))}
-          </select>
+          {/* Alert Creation Card */}
+          <div className="p-4 mb-6 bg-[#1e1e1e] rounded-xl sm:p-6">
+            <h2 className="flex items-center gap-2 mb-4 text-lg font-bold text-white sm:text-xl">
+              <span className="text-red-400">⚠️</span>
+              {editingId ? "Edit Alert" : "Create New Alert"}
+            </h2>
 
-          <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Alert Message *
-          </label>
-          <textarea
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md text-gray-800 dark:text-white bg-gray-50 dark:bg-[#0C0623] focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            rows={3}
-            placeholder="Type or edit an alert message..."
-            value={alertMsg}
-            onChange={(e) => setAlertMsg(e.target.value)}
-          />
+            {/* Alert Title Input */}
+            <div className="mb-4">
+              <label className="block mb-2 text-sm font-medium text-gray-400">
+                Alert Title *
+              </label>
+              <input
+                type="text"
+                className="w-full p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none transition-all duration-200"
+                placeholder="Enter alert title..."
+                value={alertTitle}
+                onChange={(e) => setAlertTitle(e.target.value)}
+              />
+            </div>
 
-          <button
-            onClick={handleSendAlert}
-            disabled={loading}
-            className={`w-full mt-3 ${
-              editingId
-                ? "bg-green-600 hover:bg-green-700"
-                : "bg-blue-600 hover:bg-blue-700"
-            } text-white py-2 rounded-md transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {loading ? "Sending..." : editingId ? "Update Alert" : "Send Alert"}
-          </button>
-        </div>
-
-        {/* Alert List */}
-        <div className="mt-8 w-[90%] max-w-lg space-y-3">
-          {alertList.length === 0 ? (
-            <p className="text-center text-gray-500 dark:text-gray-400">
-              No alerts yet.
-            </p>
-          ) : (
-            alertList.map((alert) => (
-              <div
-                key={alert.id}
-                className={`p-4 rounded-lg border transition-colors duration-300 flex flex-col ${
-                  alert.type === "auto"
-                    ? "bg-yellow-100 dark:bg-yellow-800 border-yellow-400"
-                    : "bg-green-100 dark:bg-green-800 border-green-400"
-                }`}
+            {/* Predefined Messages */}
+            <div className="mb-4">
+              <label className="block mb-2 text-sm font-medium text-gray-400">
+                Choose Predefined Message
+              </label>
+              <select
+                onChange={(e) => setAlertMsg(e.target.value)}
+                className="w-full p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none transition-all duration-200"
+                value={alertMsg || ""}
               >
-                <h3 className="mb-2 text-lg font-bold break-words">
-                  {alert.title || "No Title"}
-                </h3>
-                <p className="mb-2 font-medium break-words">{alert.message}</p>
-                <small className="text-gray-600 dark:text-gray-300">
-                  {new Date(alert.time).toLocaleString()} ({alert.type})
-                </small>
+                <option value="">-- Select a message --</option>
+                {predefinedMessages.map((msg, index) => (
+                  <option key={index} value={msg}>
+                    {msg.length > 60 ? msg.slice(0, 60) + "..." : msg}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                {alert.type !== "auto" && (
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => handleEditAlert(alert)}
-                      className="flex-1 py-1 text-sm text-white transition-colors bg-yellow-500 rounded-md hover:bg-yellow-600"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAlert(alert.id)}
-                      className="flex-1 py-1 text-sm text-white transition-colors bg-red-500 rounded-md hover:bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
+            {/* Alert Message Textarea */}
+            <div className="mb-4">
+              <label className="block mb-2 text-sm font-medium text-gray-400">
+                Alert Message *
+              </label>
+              <textarea
+                className="w-full p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none transition-all duration-200"
+                rows={4}
+                placeholder="Type or edit an alert message..."
+                value={alertMsg}
+                onChange={(e) => setAlertMsg(e.target.value)}
+              />
+            </div>
+
+            {/* Action Button */}
+            <button
+              onClick={handleSendAlert}
+              disabled={loading}
+              className={`w-full py-3 text-white font-medium rounded-lg transition-all duration-200 ${
+                editingId
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-red-600 hover:bg-red-700"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {loading
+                ? "Sending..."
+                : editingId
+                ? "Update Alert"
+                : "Send Alert"}
+            </button>
+          </div>
+
+          {/* Alert List Section */}
+          <div className="p-4 bg-[#1e1e1e] rounded-xl sm:p-6">
+            <h2 className="flex items-center gap-2 mb-4 text-lg font-bold text-white sm:text-xl">
+              <span className="text-blue-400">📋</span>
+              Active Alerts ({alertList.length})
+            </h2>
+
+            {alertList.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-gray-400">No alerts yet.</p>
               </div>
-            ))
-          )}
+            ) : (
+              <div className="space-y-3">
+                {alertList.map((alert) => (
+                  <div
+                    key={alert.id}
+                    className={`p-4 rounded-lg border transition-all duration-200 ${
+                      alert.type === "auto"
+                        ? "bg-yellow-900/20 border-yellow-600"
+                        : "bg-blue-900/20 border-blue-600"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="mb-1 text-lg font-bold text-white break-words">
+                          {alert.title || "No Title"}
+                        </h3>
+                        <p className="mb-2 text-gray-300 break-words">
+                          {alert.message}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                          <span>{new Date(alert.time).toLocaleString()}</span>
+                          <span className="px-2 py-1 rounded bg-[#272727]">
+                            {alert.type}
+                          </span>
+                        </div>
+                      </div>
+
+                      {alert.type !== "auto" && (
+                        <div className="flex gap-2 mt-2 sm:mt-0 sm:flex-col">
+                          <button
+                            onClick={() => handleEditAlert(alert)}
+                            className="px-3 py-2 text-sm text-white transition-colors bg-yellow-600 rounded-lg hover:bg-yellow-700"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAlert(alert.id)}
+                            className="px-3 py-2 text-sm text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

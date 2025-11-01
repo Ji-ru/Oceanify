@@ -23,7 +23,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 z-20 w-full bg-[#0C0623] border-b border-gray-600">
+    <nav className="fixed top-0 z-20 w-full bg-[#1e1e1e] rounded-4xl">
       <div className="flex flex-wrap items-center justify-between max-w-screen-xl p-2 mx-auto">
         {/* Logo */}
         <Link to="/dashboard" className="flex items-center space-x-3">
@@ -73,9 +73,11 @@ const Navbar = () => {
 
           {/* Role Badge */}
           {userRole && (
-            <span className={`px-2 py-1 text-xs font-semibold rounded ${
-              isAdmin ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white'
-            }`}>
+            <span
+              className={`px-2 py-1 text-xs font-semibold rounded ${
+                isAdmin ? "bg-purple-600 text-white" : "bg-blue-600 text-white"
+              }`}
+            >
               {userRole.toUpperCase()}
             </span>
           )}
@@ -154,9 +156,13 @@ const Navbar = () => {
           {/* Role Badge */}
           {userRole && (
             <div className="py-2">
-              <span className={`px-2 py-1 text-xs font-semibold rounded ${
-                isAdmin ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white'
-              }`}>
+              <span
+                className={`px-2 py-1 text-xs font-semibold rounded ${
+                  isAdmin
+                    ? "bg-purple-600 text-white"
+                    : "bg-blue-600 text-white"
+                }`}
+              >
                 {userRole.toUpperCase()}
               </span>
             </div>
