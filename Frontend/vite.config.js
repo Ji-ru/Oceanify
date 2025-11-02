@@ -9,5 +9,4 @@ export default defineConfig({
     host: true, // or '0.0.0.0'
     port: 5173,
   },
-  base: process.env.VITE_BASE_PATH || "/Oceanify"
 });
