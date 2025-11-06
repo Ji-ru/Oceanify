@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Navbar from "../../components/Navbar";
 import { createClient } from "@supabase/supabase-js";
+import API from "../../api";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -147,26 +148,12 @@ export default function AlertMGMT() {
       };
 
       try {
-        // Update in Laravel
-        const response = await fetch("http://localhost:8000/api/alerts", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            "X-CSRF-TOKEN":
-              document
-                .querySelector('meta[name="csrf-token"]')
-                ?.getAttribute("content") || "",
-          },
-          credentials: "include",
-          body: JSON.stringify(updatedAlert),
-        });
+        // Update in Laravel via axios API client
+        const response = await API.put("/alerts", updatedAlert);
 
-        if (response.ok) {
+        if (response.status >= 200 && response.status < 300) {
           setAlertList((prev) =>
-            prev.map((a) =>
-              a.id === editingId ? { ...a, ...updatedAlert } : a
-            )
+            prev.map((a) => (a.id === editingId ? { ...a, ...updatedAlert } : a))
           );
         } else {
           // Fallback to Supabase
@@ -245,17 +232,7 @@ export default function AlertMGMT() {
   const handleDeleteAlert = async (id) => {
     try {
       // Try to delete from Laravel first
-      const response = await fetch("http://localhost:8000/api/alerts", {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-          "X-CSRF-TOKEN":
-            document
-              .querySelector('meta[name="csrf-token"]')
-              ?.getAttribute("content") || "",
-        },
-        credentials: "include",
-      });
+      const response = await API.put("/alerts", updatedAlert);
 
       if (response.ok) {
         setAlertList((prev) => prev.filter((a) => a.id !== id));
@@ -345,7 +322,7 @@ export default function AlertMGMT() {
               </select>
             </div>
 
-            {/* Alert Message Textarea */}
+            {/* Alert Message Text area */}
             <div className="mb-4">
               <label className="block mb-2 text-sm font-medium text-gray-400">
                 Alert Message *

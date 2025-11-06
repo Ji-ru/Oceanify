@@ -77,14 +77,6 @@ export const usePortMarkers = (mapRef, mapLoaded) => {
       portMarkersRef.current.push(marker);
     });
 
-    // Add global functions for data selection
-    window.viewWeatherData = async (lat, lng, locationName) => {
-      // This will be handled by the main component
-    };
-
-    window.viewWaveData = async (lat, lng, locationName) => {
-      // This will be handled by the main component
-    };
   };
 
   const removePortMarkers = () => {

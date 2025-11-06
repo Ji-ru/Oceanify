@@ -4,7 +4,7 @@ const AlertsPanel = ({ visible, onClose, alerts }) => {
   if (!visible) return null;
 
   return (
-    <div className="fixed duration-300 top-72 right-4 z-1000 w-80 animate-in slide-in-from-right">
+    <div className="fixed duration-300 top-72 right-4 z-50 w-80 animate-in slide-in-from-right">
       <div className="border shadow-2xl bg-gradient-to-br from-red-900/90 to-orange-900/70 border-red-500/30 rounded-2xl backdrop-blur-2xl">
         <div className="p-6">
           {/* Header */}

@@ -1,10 +1,16 @@
-import React from 'react';
-import { getWeatherIcon } from '../../utils/weatherUtils';
-import { DAYS_OF_WEEK } from '../../utils/constants';
+import React from "react";
+import { getWeatherIcon } from "../../utils/weatherUtils";
+import { DAYS_OF_WEEK } from "../../utils/constants";
 
-const ForecastPanel = ({ visible, onClose, forecastData, currentLocation, selectedLocation }) => {
-  if (!visible || !forecastData?.daily) return null;
-
+const ForecastPanel = ({
+  visible,
+  onClose,
+  forecastData,
+  currentLocation,
+  selectedLocation,
+}) => {
+  if (!visible) return null;
+  if (!forecastData?.daily) return null;
   const { daily } = forecastData;
   const displayLocation = selectedLocation || currentLocation;
 
@@ -16,8 +22,8 @@ const ForecastPanel = ({ visible, onClose, forecastData, currentLocation, select
   };
 
   return (
-    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-1000 max-w-[95vw]">
-      <div className="border shadow-2xl bg-gradient-to-br from-white/10 to-white/5 border-white/20 rounded-2xl backdrop-blur-2xl">
+    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="border shadow-2xl bg-gradient-to-br from-white/10 to-white/5 border-white/20 rounded-2xl backdrop-blur-2xl pointer-events-auto">
         <div className="p-4">
           {/* Header */}
           <div className="relative flex items-center justify-center mb-4">
@@ -27,7 +33,8 @@ const ForecastPanel = ({ visible, onClose, forecastData, currentLocation, select
               </h3>
               {displayLocation && (
                 <div className="text-xs text-white/60">
-                  {displayLocation.lat.toFixed(2)}°N, {displayLocation.lng.toFixed(2)}°E
+                  {displayLocation.lat.toFixed(2)}°N,{" "}
+                  {displayLocation.lng.toFixed(2)}°E
                 </div>
               )}
             </div>
@@ -55,11 +62,16 @@ const ForecastPanel = ({ visible, onClose, forecastData, currentLocation, select
           {/* Horizontal Forecast Items */}
           <div className="flex justify-center gap-2 pb-2 overflow-x-auto scrollbar-hide">
             {daily.time.slice(0, 7).map((date, index) => {
-              const dayName = index === 0 ? "TODAY" : DAYS_OF_WEEK[new Date(date).getDay()];
-              const weatherIcon = getWeatherIcon(daily.weather_code[index], true);
+              const dayName =
+                index === 0 ? "TODAY" : DAYS_OF_WEEK[new Date(date).getDay()];
+              const weatherIcon = getWeatherIcon(
+                daily.weather_code[index],
+                true
+              );
               const maxTemp = Math.round(daily.temperature_2m_max[index]);
               const minTemp = Math.round(daily.temperature_2m_min[index]);
-              const precipitation = daily.precipitation_probability_max?.[index] || 0;
+              const precipitation =
+                daily.precipitation_probability_max?.[index] || 0;
 
               return (
                 <div

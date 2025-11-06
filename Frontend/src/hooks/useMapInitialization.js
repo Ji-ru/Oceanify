@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { GRID_STEP, THRESHOLDS } from '../utils/constants';
 import { fetchMarineData, fetchCurrentWeather } from '../utils/weatherApi';
 import { createEnhancedPopup } from '../components/PopupContent';
+import { createWavePopup, createWeatherPopup } from '../utils/mapUtils';
+import { formatValue, degToCompass, getWeatherDescription } from '../utils/weatherUtils';
 
 export const useMapInitialization = (
   mapRef,
@@ -75,7 +77,10 @@ export const useMapInitialization = (
             <div><b>Precip:</b> ${details.precipitation ?? "N/A"} mm</div>
           </div>
           <div class="flex gap-2">
-            <button class="view-more-btn flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-gray-700 to-gray-800 text-white border-none cursor-pointer transition-all hover:scale-105" data-lat="${lat}" data-lng="${lng}">
+            <button 
+              onclick="window.viewStormDetails(${lat}, ${lng})"
+              class="flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-gray-700 to-gray-800 text-white border-none cursor-pointer transition-all hover:scale-105"
+            >
               View Details
             </button>
           </div>
@@ -83,6 +88,92 @@ export const useMapInitialization = (
       `;
       marker.bindPopup(popupHtml);
       warningMarkersRef.current.push(marker);
+    };
+
+    // Function to create detailed popup for storm markers
+    const createStormDetailsPopup = async (lat, lng) => {
+      try {
+        const [weatherData, marineData] = await Promise.all([
+          fetchCurrentWeather(lat, lng),
+          fetchMarineData(lat, lng)
+        ]);
+
+        if (!weatherData?.current && !marineData?.current) {
+          return `
+            <div style="min-width: 280px; padding: 16px;">
+              <h3 style="margin: 0 0 12px 0; color: #2c3e50; font-size: 18px; font-weight: bold;">
+                ⚠️ Storm Details
+              </h3>
+              <div style="color: #7f8c8d; text-align: center; padding: 20px;">
+                No detailed data available for this location.
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <div style="min-width: 300px; padding: 16px;">
+            <div style="text-align: center; margin-bottom: 16px;">
+              <h3 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 18px; font-weight: bold;">
+                ⚠️ Storm Conditions
+              </h3>
+              <div style="color: #7f8c8d; font-size: 12px;">
+                ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E
+              </div>
+            </div>
+
+            <div style="display: grid; gap: 12px;">
+              ${weatherData?.current ? `
+                <div style="background: linear-gradient(135deg, #ff6b6b, #ee5a52); padding: 12px; border-radius: 8px;">
+                  <div style="color: white; font-weight: bold; margin-bottom: 8px;">Weather</div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: white; font-size: 12px;">
+                    <div>Wind: ${formatValue(weatherData.current.wind_speed_10m, " km/h", 0)}</div>
+                    <div>Gust: ${formatValue(weatherData.current.wind_gusts_10m, " km/h", 0)}</div>
+                    <div>Direction: ${degToCompass(weatherData.current.wind_direction_10m)}</div>
+                    <div>Precip: ${formatValue(weatherData.current.precipitation, " mm", 1)}</div>
+                  </div>
+                </div>
+              ` : ''}
+
+              ${marineData?.current ? `
+                <div style="background: linear-gradient(135deg, #74b9ff, #0984e3); padding: 12px; border-radius: 8px;">
+                  <div style="color: white; font-weight: bold; margin-bottom: 8px;">Marine</div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: white; font-size: 12px;">
+                    <div>Wave: ${formatValue(marineData.current.wave_height, " m", 1)}</div>
+                    <div>Direction: ${degToCompass(marineData.current.wave_direction)}</div>
+                    ${marineData.current.swell_wave_height ? `<div>Swell: ${formatValue(marineData.current.swell_wave_height, " m", 1)}</div>` : ''}
+                    ${marineData.current.swell_wave_direction ? `<div>Swell Dir: ${degToCompass(marineData.current.swell_wave_direction)}</div>` : ''}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+              <button 
+                onclick="window.viewFullWeatherData(${lat}, ${lng})"
+                style="flex: 1; padding: 8px 12px; background: linear-gradient(135deg, #ff6b6b, #ee5a52); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;"
+              >
+                Full Weather
+              </button>
+              <button 
+                onclick="window.viewFullWaveData(${lat}, ${lng})"
+                style="flex: 1; padding: 8px 12px; background: linear-gradient(135deg, #74b9ff, #0984e3); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;"
+              >
+                Full Waves
+              </button>
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        console.error("Error creating storm details popup:", error);
+        return `
+          <div style="min-width: 280px; padding: 16px;">
+            <div style="color: #dc2626; text-align: center;">
+              Error loading storm details
+            </div>
+          </div>
+        `;
+      }
     };
 
     const scanStormsInBounds = async () => {
@@ -204,6 +295,34 @@ export const useMapInitialization = (
 
       setMapLoaded(true);
 
+      // Set global functions for storm markers
+      window.viewStormDetails = async (lat, lng) => {
+        const popupContent = await createStormDetailsPopup(lat, lng);
+        const L = window.L;
+        
+        // Create a temporary marker for the detailed popup
+        const tempMarker = L.marker([lat, lng])
+          .addTo(map)
+          .bindPopup(popupContent, {
+            maxWidth: 320,
+            className: "storm-details-popup",
+          })
+          .openPopup();
+
+        // Remove the temporary marker when popup closes
+        tempMarker.on('popupclose', function() {
+          map.removeLayer(tempMarker);
+        });
+      };
+
+      window.viewFullWeatherData = (lat, lng) => {
+        window.viewWeatherData?.(lat, lng, "Storm Location");
+      };
+
+      window.viewFullWaveData = (lat, lng) => {
+        window.viewWaveData?.(lat, lng, "Storm Location");
+      };
+
       // Center on user if available
       navigator.geolocation.getCurrentPosition(
         ({ coords: { latitude, longitude } }) => {
@@ -221,6 +340,20 @@ export const useMapInitialization = (
                 </div>
                 <div class="text-blue-200 text-sm mt-1">
                   ${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E
+                </div>
+                <div class="flex gap-2 mt-3">
+                  <button 
+                    onclick="window.viewWeatherData(${latitude}, ${longitude}, 'Your Location')"
+                    class="flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-red-500 to-red-600 text-white border-none cursor-pointer text-xs font-semibold"
+                  >
+                    View Weather
+                  </button>
+                  <button 
+                    onclick="window.viewWaveData(${latitude}, ${longitude}, 'Your Location')"
+                    class="flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white border-none cursor-pointer text-xs font-semibold"
+                  >
+                    View Waves
+                  </button>
                 </div>
               </div>
             `);
@@ -346,7 +479,7 @@ export const useMapInitialization = (
           })
           .openPopup();
 
-        // Set global functions
+        // Set global functions for selection popup
         window.selectDataType = async (lat, lng, dataType) => {
           // This will be handled by the main component
         };
@@ -360,21 +493,6 @@ export const useMapInitialization = (
             requestRescueAt(lat, lng, reason);
           }
         };
-      });
-
-      // Popup event handlers
-      map.on("popupopen", function (e) {
-        const container = e.popup && e.popup._contentNode;
-        if (!container) return;
-
-        const viewBtn = container.querySelector(".view-more-btn");
-        if (viewBtn) {
-          viewBtn.onclick = () => {
-            const lat = parseFloat(viewBtn.dataset.lat);
-            const lng = parseFloat(viewBtn.dataset.lng);
-            map.setView([lat, lng], Math.max(map.getZoom(), 9));
-          };
-        }
       });
 
       // Initial scan and movement handlers

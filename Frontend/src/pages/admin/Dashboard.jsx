@@ -5,6 +5,11 @@ import Navbar from "../../components/Navbar";
 // Ports data
 import { useNavigate } from "react-router-dom";
 import mindanaoPorts from "../../data/ports.json";
+// Data clients
+import supabase from "../../supabaseClient";
+import API from "../../api";
+// Weather hook (provides cached fetch)
+import { useWeatherData } from "../../hooks/useWeatherData";
 
 //Icons
 import { Waves, Compass, Clock, ArrowUpDown, Droplet } from "lucide-react";
@@ -25,57 +30,34 @@ export default function DashboardPage() {
   const [portLoading, setPortLoading] = useState(false);
   const [rescueNotifications, setRescueNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const navigate = useNavigate();
+
+  // New: live rescue requests and admin alerts
+  const [rescueRequests, setRescueRequests] = useState([]);
+  const [adminAlerts, setAdminAlerts] = useState([]);
+
+  const { fetchLocationData } = useWeatherData();
+
+  // Helper: load weather and waves via cached hook
+  const loadByCoords = async (lat, lng, opts = { setGlobalLoading: false }) => {
+    try {
+      if (opts.setGlobalLoading) setLoading(true);
+      const [currentWeather, currentWaves] = await Promise.all([
+        fetchLocationData(lat, lng, "weather"),
+        fetchLocationData(lat, lng, "waves"),
+      ]);
+      if (currentWeather) setWeatherData(currentWeather);
+      if (currentWaves) setWaveData(currentWaves);
+      setError(null);
+    } catch (e) {
+      setError("Failed to load location weather data.");
+    } finally {
+      if (opts.setGlobalLoading) setLoading(false);
+    }
+  };
 
   // Get user location
   useEffect(() => {
-    const getUserLocation = () => {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ latitude, longitude });
-          await fetchWeatherData(latitude, longitude);
-        },
-        (err) => {
-          console.warn("Geolocation error:", err);
-          setError("Location access denied. Using default location.");
-          const defaultLat = 7.0667;
-          const defaultLng = 125.6333;
-          setUserLocation({ latitude: defaultLat, longitude: defaultLng });
-          fetchWeatherData(defaultLat, defaultLng);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    };
-
-    const fetchWeatherData = async (lat, lng) => {
-      try {
-        setLoading(true);
-        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timezone=auto&wind_speed_unit=kmh&precipitation_unit=mm`;
-        const waveUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_direction,swell_wave_height,swell_wave_direction,secondary_swell_wave_height,secondary_swell_wave_period&timezone=auto`;
-
-        const [weatherResponse, waveResponse] = await Promise.all([
-          fetch(weatherUrl).then((res) => {
-            if (!res.ok) throw new Error(`Weather API failed: ${res.status}`);
-            return res.json();
-          }),
-          fetch(waveUrl).then((res) => {
-            if (!res.ok) throw new Error(`Wave API failed: ${res.status}`);
-            return res.json();
-          }),
-        ]);
-
-        setWeatherData(weatherResponse);
-        setWaveData(waveResponse);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching weather data:", err);
-        setError(`Failed to load weather data: ${err.message}`);
-        setDemoData();
-      } finally {
-        setLoading(false);
-      }
-    };
+    const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
     const setDemoData = () => {
       setWeatherData({
@@ -91,6 +73,7 @@ export default function DashboardPage() {
           cloud_cover: 35,
           surface_pressure: 1010.2,
           time: new Date().toISOString(),
+          is_day: 1,
         },
       });
 
@@ -106,10 +89,52 @@ export default function DashboardPage() {
       });
     };
 
+    const getUserLocation = () => {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ latitude, longitude });
+          await loadByCoords(latitude, longitude, { setGlobalLoading: true });
+        },
+        async (err) => {
+          console.warn("Geolocation error:", err);
+          setError("Location access denied. Using default location.");
+          const defaultLat = 7.0667;
+          const defaultLng = 125.6333;
+          setUserLocation({ latitude: defaultLat, longitude: defaultLng });
+          try {
+            await loadByCoords(defaultLat, defaultLng, { setGlobalLoading: true });
+          } catch {
+            setDemoData();
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+
+    // Check cached data FIRST
+    const cachedLocation = JSON.parse(localStorage.getItem("cachedLocation"));
+    const cachedWeather = JSON.parse(localStorage.getItem("cachedWeather"));
+    const cachedWave = JSON.parse(localStorage.getItem("cachedWave"));
+    const cacheTime = localStorage.getItem("cacheTime");
+
+    if (cachedLocation && cachedWeather && cachedWave && cacheTime) {
+      const isExpired = Date.now() - cacheTime > CACHE_DURATION;
+
+      if (!isExpired) {
+        setUserLocation(cachedLocation);
+        setWeatherData(cachedWeather);
+        setWaveData(cachedWave);
+        setLoading(false);
+        return; // Stop here if using cache
+      }
+    }
+
+    // If no valid cache → get location
     getUserLocation();
   }, []);
 
-  // Fetch notifications
+  // Fetch notifications (legacy local) - kept for header dropdown
   useEffect(() => {
     const fetchNotifications = () => {
       try {
@@ -127,30 +152,70 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Load rescue requests from Supabase with realtime like AdminRescueManagement
+  useEffect(() => {
+    const loadRescueRequests = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("rescue_requests")
+          .select("*")
+          .order("timestamp", { ascending: false });
+        if (error) throw error;
+        setRescueRequests(data || []);
+      } catch (err) {
+        console.error("Failed to load rescue requests:", err);
+      }
+    };
+
+    loadRescueRequests();
+
+    const channel = supabase
+      .channel("rescue_requests_changes_dashboard")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rescue_requests" },
+        () => loadRescueRequests()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Load simple admin alerts via API, fallback to Supabase
+  useEffect(() => {
+    let canceled = false;
+    const loadAlerts = async () => {
+      try {
+        const res = await API.get("/alerts");
+        if (!canceled) setAdminAlerts(Array.isArray(res.data) ? res.data : []);
+      } catch (e) {
+        try {
+          const { data, error } = await supabase
+            .from("alerts")
+            .select("*")
+            .order("time", { ascending: false })
+            .limit(10);
+          if (!error && !canceled) setAdminAlerts(data || []);
+        } catch {}
+      }
+    };
+    loadAlerts();
+    const interval = setInterval(loadAlerts, 20000);
+    return () => {
+      canceled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
   // Fetch weather for selected port
   const handlePortChange = async (port) => {
     if (!port) return;
-
     setSelectedPort(port);
     setPortLoading(true);
-
     try {
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${port.latitude}&longitude=${port.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timezone=auto&wind_speed_unit=kmh&precipitation_unit=mm`;
-      const waveUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${port.latitude}&longitude=${port.longitude}&current=wave_height,wave_direction,swell_wave_height,swell_wave_direction,secondary_swell_wave_height,secondary_swell_wave_period&timezone=auto`;
-
-      const [weatherResponse, waveResponse] = await Promise.all([
-        fetch(weatherUrl).then((res) => {
-          if (!res.ok) throw new Error(`Weather API failed: ${res.status}`);
-          return res.json();
-        }),
-        fetch(waveUrl).then((res) => {
-          if (!res.ok) throw new Error(`Wave API failed: ${res.status}`);
-          return res.json();
-        }),
-      ]);
-
-      setWeatherData(weatherResponse);
-      setWaveData(waveResponse);
+      await loadByCoords(port.latitude, port.longitude);
       setError(null);
     } catch (err) {
       console.error("Error fetching port weather data:", err);
@@ -214,22 +279,22 @@ export default function DashboardPage() {
   const degToCompass = (degrees) => {
     if (degrees === null || degrees === undefined) return "--";
     const directions = [
-      "N",
-      "NNE",
-      "NE",
-      "ENE",
-      "E",
-      "ESE",
-      "SE",
-      "SSE",
-      "S",
-      "SSW",
-      "SW",
-      "WSW",
-      "W",
-      "WNW",
-      "NW",
-      "NNW",
+      "North",
+      "North-NorthEast",
+      "NorthEast",
+      "East-NorthEast",
+      "East",
+      "East-SouthEast",
+      "SouthEast",
+      "South-SouthEast",
+      "South",
+      "South-SouthWest",
+      "SouthWest",
+      "West-SouthWest",
+      "West",
+      "West-NorthWest",
+      "NorthWest",
+      "North-NorthWest",
     ];
     return directions[Math.round(degrees / 22.5) % 16];
   };
@@ -242,20 +307,140 @@ export default function DashboardPage() {
     return `${value.toFixed(decimals)}${unit}`;
   };
 
+  // Add these helper functions before getSafetyIndex()
+
+  const getBeaufortScale = (windSpeed) => {
+    if (windSpeed <= 1) return { score: 100, level: "Calm" };
+    if (windSpeed <= 5) return { score: 90, level: "Light Air" };
+    if (windSpeed <= 11) return { score: 80, level: "Light Breeze" };
+    if (windSpeed <= 19) return { score: 70, level: "Gentle Breeze" };
+    if (windSpeed <= 28) return { score: 60, level: "Moderate Breeze" };
+    if (windSpeed <= 38) return { score: 50, level: "Fresh Breeze" };
+    if (windSpeed <= 49) return { score: 40, level: "Strong Breeze" };
+    if (windSpeed <= 61) return { score: 30, level: "Near Gale" };
+    if (windSpeed <= 74) return { score: 20, level: "Gale" };
+    if (windSpeed <= 88) return { score: 10, level: "Strong Gale" };
+    return { score: 0, level: "Storm" };
+  };
+
+  const getDouglasScale = (waveHeight) => {
+    if (waveHeight <= 0.1) return { score: 100, level: "Calm" };
+    if (waveHeight <= 0.5) return { score: 90, level: "Smooth" };
+    if (waveHeight <= 1.25) return { score: 80, level: "Slight" };
+    if (waveHeight <= 2.5) return { score: 60, level: "Moderate" };
+    if (waveHeight <= 4.0) return { score: 40, level: "Rough" };
+    if (waveHeight <= 6.0) return { score: 20, level: "Very Rough" };
+    if (waveHeight <= 9.0) return { score: 10, level: "High" };
+    return { score: 0, level: "Very High" };
+  };
+
+  const getWeatherRiskLevel = (weatherCode) => {
+    // Clear to partly cloudy - safe
+    if (weatherCode <= 2) return { score: 100, level: "Clear" };
+    // Overcast - slightly reduced safety
+    if (weatherCode <= 3) return { score: 80, level: "Overcast" };
+    // Fog - reduced visibility
+    if (weatherCode <= 48) return { score: 60, level: "Fog" };
+    // Drizzle to rain - moderate risk
+    if (weatherCode <= 67) return { score: 50, level: "Rain" };
+    // Rain showers to thunderstorm - high risk
+    return { score: 30, level: "Storm" };
+  };
+
+  const getSafetyLevel = (score) => {
+    if (score >= 80) return "Excellent";
+    if (score >= 60) return "Good";
+    if (score >= 40) return "Moderate";
+    if (score >= 20) return "Poor";
+    return "Dangerous";
+  };
   /**
    * Calculate marine safety index based on conditions
+   * Uses Beaufort Scale for wind and Douglas Sea Scale for waves
    */
   const getSafetyIndex = () => {
-    if (!weatherData || !waveData) return null;
-    let score = 8;
-    if (waveData.current.wave_height > 2.5) score -= 2;
-    if (waveData.current.wave_height > 3.5) score -= 3;
-    if (weatherData.current.wind_speed_10m > 25) score -= 2;
-    if (weatherData.current.wind_speed_10m > 40) score -= 3;
-    if (weatherData.current.precipitation > 5) score -= 1;
-    if (weatherData.current.weather_code >= 61) score -= 1;
-    if (weatherData.current.weather_code >= 80) score -= 1;
-    return Math.max(1, Math.min(10, score));
+    try {
+      if (!weatherData || !waveData) return null;
+
+      const beaufortLevel = getBeaufortScale(
+        weatherData.current.wind_speed_10m
+      );
+      const douglasLevel = getDouglasScale(waveData.current.wave_height);
+      const weatherLevel = getWeatherRiskLevel(
+        weatherData.current.weather_code
+      );
+
+      // Combine scales with weights
+      const safetyScore =
+        beaufortLevel.score * 0.4 +
+        douglasLevel.score * 0.4 +
+        weatherLevel.score * 0.2;
+
+      return {
+        score: Math.round(safetyScore / 10), // Divide by 10 to get 0-10 scale
+        level: getSafetyLevel(safetyScore),
+        details: {
+          wind: beaufortLevel,
+          waves: douglasLevel,
+          weather: weatherLevel,
+        },
+      };
+    } catch (error) {
+      console.error("Safety index calculation error:", error);
+      return { score: 5, level: "Unknown", details: {} };
+    }
+  };
+
+  // Seafarer advisory based on current conditions
+  const getSeaAdvisory = () => {
+    try {
+      if (!weatherData || !waveData) return { severity: "unknown", message: "--" };
+
+      const wind = weatherData.current?.wind_speed_10m ?? 0; // km/h
+      const gusts = weatherData.current?.wind_gusts_10m ?? 0; // km/h
+      const waves = waveData.current?.wave_height ?? 0; // m
+      const swell = waveData.current?.swell_wave_height ?? 0; // m
+      const code = weatherData.current?.weather_code ?? 0;
+      const isFog = code === 45 || code === 48;
+      const isHeavyRain = code >= 61; // rain and above
+
+      // Danger conditions (do not sail)
+      if (waves >= 3.0 || gusts >= 60 || code >= 80) {
+        return {
+          severity: "danger",
+          message: "Danger: Very rough seas or severe weather. Small boats should not depart.",
+        };
+      }
+
+      // Caution conditions (experienced only / coastal)
+      if (waves >= 2.0 || wind >= 35 || isHeavyRain || isFog) {
+        let reasons = [];
+        if (waves >= 2.0) reasons.push("waves 2.0m+");
+        if (wind >= 35) reasons.push("strong wind 35+ km/h");
+        if (isHeavyRain) reasons.push("rain reduces visibility");
+        if (isFog) reasons.push("fog conditions");
+        return {
+          severity: "caution",
+          message: `Caution: ${reasons.join(", ")}. Stay near shore and monitor updates.`,
+        };
+      }
+
+      // Generally okay
+      if (waves <= 1.5 && wind <= 25 && !isHeavyRain && !isFog) {
+        return {
+          severity: "ok",
+          message: "Good conditions: Light-to-moderate winds and low waves. Keep standard safety gear.",
+        };
+      }
+
+      // Default moderate
+      return {
+        severity: "caution",
+        message: "Moderate conditions: Check equipment and local advisories before departure.",
+      };
+    } catch (e) {
+      return { severity: "unknown", message: "--" };
+    }
   };
 
   // Loading state
@@ -276,6 +461,11 @@ export default function DashboardPage() {
   }
 
   const safetyIndex = getSafetyIndex();
+  const advisory = getSeaAdvisory();
+
+  // Derived simple counts for UI
+  const pendingRescueCount = rescueRequests.filter((r) => r.status === "pending").length;
+  const acknowlegdedRescueCount = rescueRequests.filter((r) => r.status === "acknowledged").length;
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
@@ -314,10 +504,7 @@ export default function DashboardPage() {
                   } else {
                     setSelectedPort(null);
                     if (userLocation) {
-                      fetchWeatherData(
-                        userLocation.latitude,
-                        userLocation.longitude
-                      );
+                      loadByCoords(userLocation.latitude, userLocation.longitude);
                     }
                   }
                 }}
@@ -513,7 +700,7 @@ export default function DashboardPage() {
                       className="p-2 bg-[#272727] rounded-lg sm:p-3"
                     >
                       <div className="text-xs text-gray-400 sm:text-sm">
-                        <i className={`bi ${metric.icon}`}></i> {metric.label}
+                        <i className={`i bi ${metric.icon}`}></i> {metric.label}
                       </div>
                       <div className="text-base font-bold text-white sm:text-lg">
                         {metric.value}
@@ -687,41 +874,66 @@ export default function DashboardPage() {
                 </h3>
                 <div className="text-center">
                   <div className="text-xl font-bold text-white sm:text-2xl">
-                    {safetyIndex || "--"}/10
+                    {safetyIndex?.score || "--"}/10
                   </div>
                   <div className="w-full h-2 mt-2 bg-gray-700 rounded sm:mt-2">
                     <div
                       className="h-2 rounded bg-gradient-to-r from-green-500 to-yellow-500"
-                      style={{ width: `${(safetyIndex || 0) * 10}%` }}
+                      style={{ width: `${(safetyIndex?.score || 0) * 10}%` }}
                     ></div>
                   </div>
                   <div className="mt-1 text-xs text-gray-400 sm:mt-1">
-                    {safetyIndex >= 8
-                      ? "Excellent"
-                      : safetyIndex >= 6
-                      ? "Good"
-                      : safetyIndex >= 4
-                      ? "Caution"
-                      : "Poor"}
+                    {safetyIndex?.level || "Loading..."}
+                  </div>
+
+                  {/* Seafarer advisory */}
+                  <div className="mt-3 text-left">
+                    {advisory.severity === "danger" && (
+                      <div className="p-3 text-sm text-red-200 bg-red-900/30 border border-red-700/40 rounded-lg">
+                        ⚠️ {advisory.message}
+                      </div>
+                    )}
+                    {advisory.severity === "caution" && (
+                      <div className="p-3 text-sm text-amber-200 bg-amber-900/30 border border-amber-700/40 rounded-lg">
+                        ⚠️ {advisory.message}
+                      </div>
+                    )}
+                    {advisory.severity === "ok" && (
+                      <div className="p-3 text-sm text-green-200 bg-green-900/30 border border-green-700/40 rounded-lg">
+                        ✅ {advisory.message}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
+              {/* Simple Marine Alerts from AlertMGMT */}
               <div className="p-3 bg-[#1e1e1e] rounded-xl sm:p-4">
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="flex items-center gap-2 text-sm font-bold text-white sm:text-base">
                     <i className="bi bi-exclamation-triangle"></i> Marine Alerts
                   </h3>
                   <span className="px-2 py-1 text-xs text-white bg-red-500 rounded sm:text-sm">
-                    0 Active
+                    {adminAlerts.length} Active
                   </span>
                 </div>
-                <div className="text-sm text-center text-gray-400 sm:text-base">
-                  No active alerts
-                </div>
+                {adminAlerts.length === 0 ? (
+                  <div className="text-sm text-center text-gray-400 sm:text-base">
+                    No active alerts
+                  </div>
+                ) : (
+                  <ul className="space-y-2 text-sm text-white">
+                    {adminAlerts.slice(0, 5).map((a) => (
+                      <li key={a.id} className="p-2 rounded bg-[#272727]">
+                        <div className="font-semibold truncate">{a.title || "Alert"}</div>
+                        <div className="text-xs text-gray-400 truncate">{new Date(a.time).toLocaleString()}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
-              {/* Rescue Requests */}
+              {/* Rescue Requests (simple) */}
               <div className="flex-1 p-3 bg-[#1e1e1e] rounded-xl sm:p-4">
                 <div className="flex flex-col h-full">
                   <div className="flex items-start justify-between mb-3">
@@ -729,43 +941,25 @@ export default function DashboardPage() {
                       <h3 className="text-sm font-semibold text-white truncate sm:text-base">
                         Rescue Requests
                       </h3>
-                      <p className="text-xs text-red-200 sm:text-xs">
-                        {
-                          rescueNotifications.filter(
-                            (n) => n.status === "pending"
-                          ).length
-                        }{" "}
-                        pending
-                      </p>
+                      <div className="flex flex-row gap-5">
+                        <p className="text-xs text-red-200 sm:text-xs">
+                          {pendingRescueCount} - pending
+                        </p>
+                        <p className="text-xs text-green-200 sm:text-xs">{acknowlegdedRescueCount} - acknowledge</p>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => {
-                        if (window.confirm("Clear all rescue notifications?")) {
-                          localStorage.setItem("rescueNotifications", "[]");
-                          setRescueNotifications([]);
-                        }
-                      }}
-                      className="px-2 py-1 text-xs text-white bg-red-500 rounded hover:bg-red-500/80 sm:text-sm sm:px-2"
-                    >
-                      Clear All
-                    </button>
                   </div>
                   <div className="flex-1 space-y-2 overflow-y-auto">
-                    {rescueNotifications.length > 0 ? (
-                      rescueNotifications.map((notification) => (
-                        <div
-                          key={notification.id}
-                          className={`p-2 rounded text-xs ${
-                            notification.read ? "bg-gray-800" : "bg-red-900"
-                          }`}
-                        >
-                          <div className="font-medium text-white">
-                            Emergency
+                    {rescueRequests.length > 0 ? (
+                      rescueRequests.slice(0, 8).map((request) => (
+                        <div key={request.id} className={`p-2 rounded text-xs ${request.status === "pending" ? "bg-red-900" : "bg-gray-800"}`}>
+                          <div className="font-medium text-white truncate">
+                            {request.reason?.toString().replace(/_/g, " ").toUpperCase() || "EMERGENCY"}
                           </div>
-                          <div className="text-gray-300">
-                            {notification.latitude?.toFixed(2)}°N,{" "}
-                            {notification.longitude?.toFixed(2)}°E
+                          <div className="text-gray-300 truncate">
+                            {request.latitude?.toFixed(2)}°N, {request.longitude?.toFixed(2)}°E
                           </div>
+                          <div className="text-gray-400">{new Date(request.timestamp).toLocaleString()}</div>
                         </div>
                       ))
                     ) : (

@@ -19,6 +19,7 @@ import AlertMGMT from "./pages/admin/AlertMGMT";
 import Dashboard from "./pages/admin/Dashboard";
 import RescueButton from "./pages/user/RescueButton";
 import UserMap from "./pages/user/UserMap";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -55,8 +56,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
-          {/* 🆘 USER RESCUE PAGE */}
+
+          {/* SOS USER RESCUE PAGE */}
           <Route
             path="/rescue"
             element={
@@ -85,7 +86,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
+
           {/* 🚨 ADMIN RESCUE MANAGEMENT PAGE - ADD THIS */}
           <Route
             path="/rescue-management"
@@ -107,6 +108,13 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* -----------------------------
+              Admin and User Page
+          ----------------------------- */}
+          {/* PROFILE PAGE */}
+
+          <Route path="/profile" element={<Profile />} />
 
           {/* -----------------------------
               Catch-all Route

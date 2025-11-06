@@ -1,10 +1,17 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMapInitialization } from "../../hooks/useMapInitialization";
 import { useWeatherData } from "../../hooks/useWeatherData";
 import { useRescueFlow } from "../../hooks/useRescueFlow";
 import { useAlerts } from "../../hooks/useAlerts";
 import { usePortMarkers } from "../../hooks/usePortMarkers";
+import { createEnhancedPopup } from "../../components/PopupContent";
+import { createWeatherPopup, createWavePopup } from "../../utils/mapUtils";
+import {
+  formatValue,
+  degToCompass,
+  getWeatherDescription,
+} from "../../utils/weatherUtils";
 import ControlPanel from "../../components/MapComponents/ControlPanel";
 import AlertsPanel from "../../components/MapComponents/AlertsPanel";
 import ForecastPanel from "../../components/MapComponents/ForecastPanel";
@@ -12,15 +19,12 @@ import ControlToggleButton from "../../components/MapComponents/ControlToggleBut
 import RescueModal from "../../components/MapComponents/RescueModal";
 import Navbar from "../../components/Navbar";
 import MarineVisualizer from "../../marineVisualizer/MarineVisualizer";
-import { createEnhancedPopup } from "../../components/PopupContent";
-import { createWavePopup } from "../../utils/mapUtils";
-import { formatValue, degToCompass, getWeatherDescription } from "../../utils/weatherUtils";
 
 export default function AdminMaps() {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const warningMarkersRef = useRef([]);
-  
+
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showTemperature, setShowTemperature] = useState(true);
   const [showPressure, setShowPressure] = useState(false);
@@ -28,135 +32,165 @@ export default function AdminMaps() {
   const [showForecastPanel, setShowForecastPanel] = useState(false);
   const [showControlsPanel, setShowControlsPanel] = useState(false);
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
-  
+
   const navigate = useNavigate();
 
   // Custom hooks
-  const { 
-    currentLocation, 
+  const {
+    currentLocation,
     setCurrentLocation,
-    forecastData, 
+    forecastData,
     setForecastData,
-    loading, 
+    loading,
     loadingType,
     fetchLocationData,
-    getWeatherIcon 
+    getWeatherIcon,
   } = useWeatherData();
-  
+
   const { alerts } = useAlerts();
   const { showPorts, togglePortMarkers } = usePortMarkers(mapRef, mapLoaded);
-  
+
   const rescueFlow = useRescueFlow(mapRef);
 
   // Initialize map
   useMapInitialization(
-    mapRef, 
-    markerRef, 
-    warningMarkersRef, 
-    setMapLoaded, 
+    mapRef,
+    markerRef,
+    warningMarkersRef,
+    setMapLoaded,
     setShowForecastPanel,
     rescueFlow.requestRescueAt
   );
 
-  // Set global functions for map interactions
-  const setupGlobalFunctions = () => {
-    window.selectDataType = async (lat, lng, dataType) => {
-      await handleLocationDataFetch(lat, lng, "Selected Location", dataType);
-    };
+  // Handle location data fetching - wrap in useCallback to prevent infinite re-renders
+  const handleLocationDataFetch = useCallback(
+    async (lat, lng, locationName, dataType) => {
+      if (!lat || !lng) return;
 
+      setShowForecastPanel(false);
+
+      rescueFlow.setSelectedLat(lat);
+      rescueFlow.setSelectedLng(lng);
+
+      setForecastData(null);
+      // Fetch data via cached hook
+      const data = await fetchLocationData(lat, lng, dataType);
+
+      // Set context for forecast panel
+      setCurrentLocation({
+        lat,
+        lng,
+        name: locationName || "Selected Location",
+      });
+      setShowForecastPanel(true);
+
+      if (!data || !mapRef.current) return;
+
+      // Remove previous marker and close any open popups
+      if (markerRef.current && mapRef.current.hasLayer?.(markerRef.current)) {
+        mapRef.current.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
+      if (mapRef.current?.closePopup) {
+        mapRef.current.closePopup();
+      }
+
+      const L = window.L;
+      if (!L) return;
+
+      if (dataType === "weather" && data.current) {
+        const popupContent = createWeatherPopup(data, lat, lng, locationName);
+
+        const weatherIcon = L.divIcon({
+          html: `<div style="background: linear-gradient(135deg, #ff6b6b, #ee5a52); color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.3);">${
+            data.current.temperature_2m != null
+              ? Math.round(data.current.temperature_2m) + "°"
+              : "?"
+          }</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -16],
+        });
+
+        markerRef.current = L.marker([lat, lng], { icon: weatherIcon })
+          .addTo(mapRef.current)
+          .bindPopup(popupContent, {
+            maxWidth: 400,
+            className: "weather-popup",
+            autoPan: true,
+            closeOnClick: false,
+          })
+          .openPopup();
+      } else if (dataType === "waves" && data.current) {
+        const wavePopupContent = createWavePopup(data, lat, lng, locationName);
+
+        const waveIcon = L.divIcon({
+          html: `<div style="background: linear-gradient(135deg, #74b9ff, #0984e3); color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.3);">${
+            data.current.wave_height != null
+              ? data.current.wave_height.toFixed(1) + "m"
+              : "🌊"
+          }</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -16],
+        });
+
+        markerRef.current = L.marker([lat, lng], { icon: waveIcon })
+          .addTo(mapRef.current)
+          .bindPopup(wavePopupContent, {
+            maxWidth: 320,
+            className: "wave-popup",
+            autoPan: true,
+            closeOnClick: false,
+          })
+          .openPopup();
+      }
+
+      // Center map on selected location
+      mapRef.current.setView([lat, lng], 10);
+    },
+    [rescueFlow, fetchLocationData, setCurrentLocation]
+  );
+
+  // In your AdminMaps component, update the useEffect:
+
+  useEffect(() => {
+    // Set global functions immediately
     window.viewWeatherData = async (lat, lng, locationName) => {
+      setShowControlsPanel(false);
+      setShowAlertsPanel(false);
       await handleLocationDataFetch(lat, lng, locationName, "weather");
     };
 
     window.viewWaveData = async (lat, lng, locationName) => {
+      setShowControlsPanel(false);
+      setShowAlertsPanel(false);
       await handleLocationDataFetch(lat, lng, locationName, "waves");
+    };
+
+    window.selectDataType = async (lat, lng, dataType) => {
+      setShowControlsPanel(false);
+      setShowAlertsPanel(false);
+      await handleLocationDataFetch(lat, lng, "Selected Location", dataType);
     };
 
     window.closePopup = () => {
       if (markerRef.current) {
         markerRef.current.closePopup();
       }
+      if (mapRef.current?.closePopup) {
+        mapRef.current.closePopup();
+      }
     };
-  };
 
-  // Handle location data fetching
-  const handleLocationDataFetch = async (lat, lng, locationName, dataType) => {
-    rescueFlow.setSelectedLat(lat);
-    rescueFlow.setSelectedLng(lng);
-
-    const data = await fetchLocationData(lat, lng, dataType);
-    
-    if (!data || !mapRef.current) return;
-
-    // Remove previous marker
-    if (markerRef.current && mapRef.current.hasLayer(markerRef.current)) {
-      mapRef.current.removeLayer(markerRef.current);
-      markerRef.current = null;
-    }
-
-    const L = window.L;
-    if (!L) return;
-
-    if (dataType === "weather" && data.current) {
-      const popupContent = createEnhancedPopup(
-        data,
-        null, // waveData would need to be fetched separately if needed
-        lat,
-        lng,
-        getWeatherDescription,
-        degToCompass,
-        formatValue
-      );
-
-      const weatherIcon = L.divIcon({
-        html: `<div style="background: linear-gradient(135deg, #ff6b6b, #ee5a52); color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.3);">${
-          data.current.temperature_2m != null
-            ? Math.round(data.current.temperature_2m) + "°"
-            : "?"
-        }</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-        popupAnchor: [0, -16],
-      });
-
-      markerRef.current = L.marker([lat, lng], { icon: weatherIcon })
-        .addTo(mapRef.current)
-        .bindPopup(popupContent, {
-          maxWidth: 400,
-          className: "weather-popup",
-        })
-        .openPopup();
-    } else if (dataType === "waves" && data.current) {
-      const wavePopupContent = createWavePopup(data, lat, lng, locationName);
-
-      const waveIcon = L.divIcon({
-        html: `<div style="background: linear-gradient(135deg, #74b9ff, #0984e3); color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.3);">${
-          data.current.wave_height != null
-            ? data.current.wave_height.toFixed(1) + "m"
-            : "🌊"
-        }</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-        popupAnchor: [0, -16],
-      });
-
-      markerRef.current = L.marker([lat, lng], { icon: waveIcon })
-        .addTo(mapRef.current)
-        .bindPopup(wavePopupContent, {
-          maxWidth: 320,
-          className: "wave-popup",
-        })
-        .openPopup();
-    }
-
-    // Center map on selected location
-    mapRef.current.setView([lat, lng], 10);
-  };
-
-  // Setup global functions on component mount
-  useState(() => {
-    setupGlobalFunctions();
-  }, []);
+    // Cleanup function
+    return () => {
+      window.viewWeatherData = undefined;
+      window.viewWaveData = undefined;
+      window.selectDataType = undefined;
+      window.closePopup = undefined;
+    };
+  }, [handleLocationDataFetch]); // Now this is stable due to useCallback
 
   // Layer toggle function
   const toggleLayer = (layerName, currentState, setState) => {
@@ -165,7 +199,7 @@ export default function AdminMaps() {
 
     const layer = map[layerName];
     if (currentState) {
-      if (map.hasLayer(layer)) map.removeLayer(layer);
+      if (map.hasLayer?.(layer)) map.removeLayer(layer);
       setState(false);
     } else {
       layer?.addTo(map);
@@ -188,10 +222,14 @@ export default function AdminMaps() {
     }
   };
 
-  const selectedLocation = rescueFlow.selectedLat !== null ? {
-    lat: rescueFlow.selectedLat,
-    lng: rescueFlow.selectedLng
-  } : null;
+  const selectedLocation =
+    rescueFlow.selectedLat !== null
+      ? {
+          lat: rescueFlow.selectedLat,
+          lng: rescueFlow.selectedLng,
+          name: currentLocation?.name || "Selected Location",
+        }
+      : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-[#0C0623] to-slate-800">
@@ -201,7 +239,10 @@ export default function AdminMaps() {
       {/* Map */}
       <div id="map" className="absolute inset-0 z-0" />
 
-      <MarineVisualizer lat={rescueFlow.selectedLat} lng={rescueFlow.selectedLng} />
+      <MarineVisualizer
+        lat={rescueFlow.selectedLat}
+        lng={rescueFlow.selectedLng}
+      />
 
       {/* Toggle Buttons */}
       <ControlToggleButton
@@ -220,9 +261,15 @@ export default function AdminMaps() {
         showPressure={showPressure}
         showStorm={showStorm}
         showPorts={showPorts}
-        onToggleTemperature={() => toggleLayer("tempLayer", showTemperature, setShowTemperature)}
-        onTogglePressure={() => toggleLayer("pressureLayer", showPressure, setShowPressure)}
-        onToggleStorm={() => toggleLayer("precipitationLayer", showStorm, setShowStorm)}
+        onToggleTemperature={() =>
+          toggleLayer("tempLayer", showTemperature, setShowTemperature)
+        }
+        onTogglePressure={() =>
+          toggleLayer("pressureLayer", showPressure, setShowPressure)
+        }
+        onToggleStorm={() =>
+          toggleLayer("precipitationLayer", showStorm, setShowStorm)
+        }
         onTogglePorts={togglePortMarkers}
         onLogout={() => navigate("/")}
       />

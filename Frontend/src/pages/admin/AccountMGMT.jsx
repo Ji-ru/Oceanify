@@ -47,7 +47,7 @@ const AccountManagementPage = () => {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-white transition-all duration-200 bg-green-600 rounded-lg hover:bg-green-700 sm:px-6 sm:py-3 sm:text-base"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-white transition-all duration-200 bg-green-600 hover:bg-green-700 sm:px-6 sm:py-3 sm:text-base"
             >
               <svg
                 className="w-4 h-4 sm:w-5 sm:h-5"
