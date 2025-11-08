@@ -14,7 +14,7 @@ export const useMapInitialization = (
   requestRescueAt
 ) => {
   useEffect(() => {
-    const API_KEY = "API_KEY";
+    const API_KEY = "60b8ffcce91b8ebdc127d1219e56e0f5";
 
     const loadLeaflet = async () => {
       try {
