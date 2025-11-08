@@ -27,7 +27,6 @@ const AccountManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
-      {/* Navbar fixed */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <Navbar />
       </div>
@@ -35,7 +34,6 @@ const AccountManagementPage = () => {
       <div className="flex items-center justify-center pt-20 mx-auto lg:p-6 lg:pt-28">
         {/* Content */}
         <div className="flex flex-col w-full p-4 pt-20 mx-auto lg:p-6 lg:pt-24 max-w-7xl">
-          {/* Page Header with Add Button */}
           <div className="flex flex-col items-start justify-between gap-4 mb-6 lg:flex-row lg:items-center">
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-bold text-white sm:text-3xl">
