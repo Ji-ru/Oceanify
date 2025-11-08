@@ -30,9 +30,10 @@ class SupabaseService {
     }
 
     // READ
-    public function getAll() {
+    public function getAll($orderBy = 'id', $ascending = true) {
+        $order = $ascending ? 'asc' : 'desc';
         return $this->client()
-            ->get($this->url . $this->table)
+            ->get("{$this->url}{$this->table}?order={$orderBy}.{$order}")
             ->json();
     }
 

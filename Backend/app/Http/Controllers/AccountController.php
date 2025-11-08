@@ -14,13 +14,7 @@ class AccountController extends Controller {
     }
 
     public function index() {
-        $accounts = $this->supabase->getAll();
-        
-        // If $accounts is an object, convert to array
-        if (is_object($accounts)) {
-            $accounts = (array) $accounts;
-        }
-
+        $accounts = $this->supabase->getAll('id', true);
         return response()->json($accounts);
     }
 
