@@ -3,14 +3,12 @@ import { useEffect, useState } from "react";
 // Components
 import Navbar from "../../components/Navbar";
 // Ports data
-import { useNavigate } from "react-router-dom";
 import mindanaoPorts from "../../data/ports.json";
 // Data clients
 import supabase from "../../supabaseClient";
 import API from "../../api";
 // Weather hook (provides cached fetch)
 import { useWeatherData } from "../../hooks/useWeatherData";
-
 //Icons
 import { Waves, Compass, Clock, ArrowUpDown, Droplet } from "lucide-react";
 import { Droplets, Cloud, Gauge, Eye, Sun, Moon } from "lucide-react";
@@ -36,6 +34,7 @@ export default function DashboardPage() {
   const [adminAlerts, setAdminAlerts] = useState([]);
 
   const { fetchLocationData } = useWeatherData();
+
 
   // Helper: load weather and waves via cached hook
   const loadByCoords = async (lat, lng, opts = { setGlobalLoading: false }) => {
@@ -103,7 +102,9 @@ export default function DashboardPage() {
           const defaultLng = 125.6333;
           setUserLocation({ latitude: defaultLat, longitude: defaultLng });
           try {
-            await loadByCoords(defaultLat, defaultLng, { setGlobalLoading: true });
+            await loadByCoords(defaultLat, defaultLng, {
+              setGlobalLoading: true,
+            });
           } catch {
             setDemoData();
           }
@@ -394,7 +395,8 @@ export default function DashboardPage() {
   // Seafarer advisory based on current conditions
   const getSeaAdvisory = () => {
     try {
-      if (!weatherData || !waveData) return { severity: "unknown", message: "--" };
+      if (!weatherData || !waveData)
+        return { severity: "unknown", message: "--" };
 
       const wind = weatherData.current?.wind_speed_10m ?? 0; // km/h
       const gusts = weatherData.current?.wind_gusts_10m ?? 0; // km/h
@@ -408,7 +410,8 @@ export default function DashboardPage() {
       if (waves >= 3.0 || gusts >= 60 || code >= 80) {
         return {
           severity: "danger",
-          message: "Danger: Very rough seas or severe weather. Small boats should not depart.",
+          message:
+            "Danger: Very rough seas or severe weather. Small boats should not depart.",
         };
       }
 
@@ -421,7 +424,9 @@ export default function DashboardPage() {
         if (isFog) reasons.push("fog conditions");
         return {
           severity: "caution",
-          message: `Caution: ${reasons.join(", ")}. Stay near shore and monitor updates.`,
+          message: `Caution: ${reasons.join(
+            ", "
+          )}. Stay near shore and monitor updates.`,
         };
       }
 
@@ -429,14 +434,16 @@ export default function DashboardPage() {
       if (waves <= 1.5 && wind <= 25 && !isHeavyRain && !isFog) {
         return {
           severity: "ok",
-          message: "Good conditions: Light-to-moderate winds and low waves. Keep standard safety gear.",
+          message:
+            "Good conditions: Light-to-moderate winds and low waves. Keep standard safety gear.",
         };
       }
 
       // Default moderate
       return {
         severity: "caution",
-        message: "Moderate conditions: Check equipment and local advisories before departure.",
+        message:
+          "Moderate conditions: Check equipment and local advisories before departure.",
       };
     } catch (e) {
       return { severity: "unknown", message: "--" };
@@ -464,8 +471,12 @@ export default function DashboardPage() {
   const advisory = getSeaAdvisory();
 
   // Derived simple counts for UI
-  const pendingRescueCount = rescueRequests.filter((r) => r.status === "pending").length;
-  const acknowlegdedRescueCount = rescueRequests.filter((r) => r.status === "acknowledged").length;
+  const pendingRescueCount = rescueRequests.filter(
+    (r) => r.status === "pending"
+  ).length;
+  const acknowlegdedRescueCount = rescueRequests.filter(
+    (r) => r.status === "acknowledged"
+  ).length;
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
@@ -504,7 +515,10 @@ export default function DashboardPage() {
                   } else {
                     setSelectedPort(null);
                     if (userLocation) {
-                      loadByCoords(userLocation.latitude, userLocation.longitude);
+                      loadByCoords(
+                        userLocation.latitude,
+                        userLocation.longitude
+                      );
                     }
                   }
                 }}
@@ -925,8 +939,12 @@ export default function DashboardPage() {
                   <ul className="space-y-2 text-sm text-white">
                     {adminAlerts.slice(0, 5).map((a) => (
                       <li key={a.id} className="p-2 rounded bg-[#272727]">
-                        <div className="font-semibold truncate">{a.title || "Alert"}</div>
-                        <div className="text-xs text-gray-400 truncate">{new Date(a.time).toLocaleString()}</div>
+                        <div className="font-semibold truncate">
+                          {a.title || "Alert"}
+                        </div>
+                        <div className="text-xs text-gray-400 truncate">
+                          {new Date(a.time).toLocaleString()}
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -945,21 +963,36 @@ export default function DashboardPage() {
                         <p className="text-xs text-red-200 sm:text-xs">
                           {pendingRescueCount} - pending
                         </p>
-                        <p className="text-xs text-green-200 sm:text-xs">{acknowlegdedRescueCount} - acknowledge</p>
+                        <p className="text-xs text-green-200 sm:text-xs">
+                          {acknowlegdedRescueCount} - acknowledge
+                        </p>
                       </div>
                     </div>
                   </div>
                   <div className="flex-1 space-y-2 overflow-y-auto">
                     {rescueRequests.length > 0 ? (
                       rescueRequests.slice(0, 8).map((request) => (
-                        <div key={request.id} className={`p-2 rounded text-xs ${request.status === "pending" ? "bg-red-900" : "bg-gray-800"}`}>
+                        <div
+                          key={request.id}
+                          className={`p-2 rounded text-xs ${
+                            request.status === "pending"
+                              ? "bg-red-900"
+                              : "bg-gray-800"
+                          }`}
+                        >
                           <div className="font-medium text-white truncate">
-                            {request.reason?.toString().replace(/_/g, " ").toUpperCase() || "EMERGENCY"}
+                            {request.reason
+                              ?.toString()
+                              .replace(/_/g, " ")
+                              .toUpperCase() || "EMERGENCY"}
                           </div>
                           <div className="text-gray-300 truncate">
-                            {request.latitude?.toFixed(2)}°N, {request.longitude?.toFixed(2)}°E
+                            {request.latitude?.toFixed(2)}°N,{" "}
+                            {request.longitude?.toFixed(2)}°E
                           </div>
-                          <div className="text-gray-400">{new Date(request.timestamp).toLocaleString()}</div>
+                          <div className="text-gray-400">
+                            {new Date(request.timestamp).toLocaleString()}
+                          </div>
                         </div>
                       ))
                     ) : (

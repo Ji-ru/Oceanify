@@ -5,7 +5,6 @@ import { useWeatherData } from "../../hooks/useWeatherData";
 import { useRescueFlow } from "../../hooks/useRescueFlow";
 import { useAlerts } from "../../hooks/useAlerts";
 import { usePortMarkers } from "../../hooks/usePortMarkers";
-import { createEnhancedPopup } from "../../components/PopupContent";
 import { createWeatherPopup, createWavePopup } from "../../utils/mapUtils";
 import {
   formatValue,
@@ -19,6 +18,7 @@ import ControlToggleButton from "../../components/MapComponents/ControlToggleBut
 import RescueModal from "../../components/MapComponents/RescueModal";
 import Navbar from "../../components/Navbar";
 import MarineVisualizer from "../../marineVisualizer/MarineVisualizer";
+import AdminEmergencyMarkers from "../../components/MapComponents/AdminEmergencyMarkers";
 
 export default function AdminMaps() {
   const mapRef = useRef(null);
@@ -42,9 +42,7 @@ export default function AdminMaps() {
     forecastData,
     setForecastData,
     loading,
-    loadingType,
     fetchLocationData,
-    getWeatherIcon,
   } = useWeatherData();
 
   const { alerts } = useAlerts();
@@ -72,7 +70,6 @@ export default function AdminMaps() {
       rescueFlow.setSelectedLat(lat);
       rescueFlow.setSelectedLng(lng);
 
-      setForecastData(null);
       // Fetch data via cached hook
       const data = await fetchLocationData(lat, lng, dataType);
 
@@ -149,12 +146,17 @@ export default function AdminMaps() {
       // Center map on selected location
       mapRef.current.setView([lat, lng], 10);
     },
-    [rescueFlow, fetchLocationData, setCurrentLocation]
+    [
+      rescueFlow,
+      fetchLocationData,
+      setCurrentLocation,
+      setShowForecastPanel,
+      setForecastData,
+    ]
   );
 
-  // In your AdminMaps component, update the useEffect:
-
   useEffect(() => {
+    if (!mapLoaded) return;
     // Set global functions immediately
     window.viewWeatherData = async (lat, lng, locationName) => {
       setShowControlsPanel(false);
@@ -174,6 +176,10 @@ export default function AdminMaps() {
       await handleLocationDataFetch(lat, lng, "Selected Location", dataType);
     };
 
+    window.requestRescueAtLocation = (lat, lng) => {
+      rescueFlow.requestRescueAt(lat, lng);
+    };
+
     window.closePopup = () => {
       if (markerRef.current) {
         markerRef.current.closePopup();
@@ -183,14 +189,31 @@ export default function AdminMaps() {
       }
     };
 
-    // Cleanup function
+    // Cleanup function - FIXED: added requestRescueAtLocation
     return () => {
       window.viewWeatherData = undefined;
       window.viewWaveData = undefined;
       window.selectDataType = undefined;
+      window.requestRescueAtLocation = undefined;
       window.closePopup = undefined;
     };
-  }, [handleLocationDataFetch]); // Now this is stable due to useCallback
+  }, [mapLoaded, handleLocationDataFetch, rescueFlow, fetchLocationData]); // Now this is stable due to useCallback
+
+  useEffect(() => {
+    // Only auto-show for initial load, not when user manually closes
+    if (forecastData && currentLocation && !showForecastPanel) {
+      const isInitialLoad = !rescueFlow.selectedLat; // Only auto-show if no location selected
+      if (isInitialLoad) {
+        console.log("Auto-showing forecast panel for:", currentLocation);
+        setShowForecastPanel(true);
+      }
+    }
+  }, [
+    forecastData,
+    currentLocation,
+    showForecastPanel,
+    rescueFlow.selectedLat,
+  ]);
 
   // Layer toggle function
   const toggleLayer = (layerName, currentState, setState) => {
@@ -280,6 +303,9 @@ export default function AdminMaps() {
         onClose={() => setShowAlertsPanel(false)}
         alerts={alerts}
       />
+
+      {/* Admin-only Rescue Markers */}
+      <AdminEmergencyMarkers mapRef={mapRef} />
 
       {/* Forecast Panel */}
       <ForecastPanel

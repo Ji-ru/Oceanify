@@ -1,9 +1,13 @@
-import { useEffect } from 'react';
-import { GRID_STEP, THRESHOLDS } from '../utils/constants';
-import { fetchMarineData, fetchCurrentWeather } from '../utils/weatherApi';
-import { createEnhancedPopup } from '../components/PopupContent';
-import { createWavePopup, createWeatherPopup } from '../utils/mapUtils';
-import { formatValue, degToCompass, getWeatherDescription } from '../utils/weatherUtils';
+import { useEffect } from "react";
+import { GRID_STEP, THRESHOLDS } from "../utils/constants";
+import { fetchMarineData, fetchCurrentWeather } from "../utils/weatherApi";
+import { createEnhancedPopup } from "../components/PopupContent";
+import { createWavePopup, createWeatherPopup } from "../utils/mapUtils";
+import {
+  formatValue,
+  degToCompass,
+  getWeatherDescription,
+} from "../utils/weatherUtils";
 
 export const useMapInitialization = (
   mapRef,
@@ -21,13 +25,15 @@ export const useMapInitialization = (
         if (!document.querySelector('link[href*="leaflet"]')) {
           const link = document.createElement("link");
           link.rel = "stylesheet";
-          link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+          link.href =
+            "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
           document.head.appendChild(link);
         }
 
         if (!window.L) {
           const script = document.createElement("script");
-          script.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+          script.src =
+            "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
           script.onload = initializeMap;
           document.head.appendChild(script);
         } else {
@@ -95,7 +101,7 @@ export const useMapInitialization = (
       try {
         const [weatherData, marineData] = await Promise.all([
           fetchCurrentWeather(lat, lng),
-          fetchMarineData(lat, lng)
+          fetchMarineData(lat, lng),
         ]);
 
         if (!weatherData?.current && !marineData?.current) {
@@ -123,29 +129,71 @@ export const useMapInitialization = (
             </div>
 
             <div style="display: grid; gap: 12px;">
-              ${weatherData?.current ? `
+              ${
+                weatherData?.current
+                  ? `
                 <div style="background: linear-gradient(135deg, #ff6b6b, #ee5a52); padding: 12px; border-radius: 8px;">
                   <div style="color: white; font-weight: bold; margin-bottom: 8px;">Weather</div>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: white; font-size: 12px;">
-                    <div>Wind: ${formatValue(weatherData.current.wind_speed_10m, " km/h", 0)}</div>
-                    <div>Gust: ${formatValue(weatherData.current.wind_gusts_10m, " km/h", 0)}</div>
-                    <div>Direction: ${degToCompass(weatherData.current.wind_direction_10m)}</div>
-                    <div>Precip: ${formatValue(weatherData.current.precipitation, " mm", 1)}</div>
+                    <div>Wind: ${formatValue(
+                      weatherData.current.wind_speed_10m,
+                      " km/h",
+                      0
+                    )}</div>
+                    <div>Gust: ${formatValue(
+                      weatherData.current.wind_gusts_10m,
+                      " km/h",
+                      0
+                    )}</div>
+                    <div>Direction: ${degToCompass(
+                      weatherData.current.wind_direction_10m
+                    )}</div>
+                    <div>Precip: ${formatValue(
+                      weatherData.current.precipitation,
+                      " mm",
+                      1
+                    )}</div>
                   </div>
                 </div>
-              ` : ''}
+              `
+                  : ""
+              }
 
-              ${marineData?.current ? `
+              ${
+                marineData?.current
+                  ? `
                 <div style="background: linear-gradient(135deg, #74b9ff, #0984e3); padding: 12px; border-radius: 8px;">
                   <div style="color: white; font-weight: bold; margin-bottom: 8px;">Marine</div>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: white; font-size: 12px;">
-                    <div>Wave: ${formatValue(marineData.current.wave_height, " m", 1)}</div>
-                    <div>Direction: ${degToCompass(marineData.current.wave_direction)}</div>
-                    ${marineData.current.swell_wave_height ? `<div>Swell: ${formatValue(marineData.current.swell_wave_height, " m", 1)}</div>` : ''}
-                    ${marineData.current.swell_wave_direction ? `<div>Swell Dir: ${degToCompass(marineData.current.swell_wave_direction)}</div>` : ''}
+                    <div>Wave: ${formatValue(
+                      marineData.current.wave_height,
+                      " m",
+                      1
+                    )}</div>
+                    <div>Direction: ${degToCompass(
+                      marineData.current.wave_direction
+                    )}</div>
+                    ${
+                      marineData.current.swell_wave_height
+                        ? `<div>Swell: ${formatValue(
+                            marineData.current.swell_wave_height,
+                            " m",
+                            1
+                          )}</div>`
+                        : ""
+                    }
+                    ${
+                      marineData.current.swell_wave_direction
+                        ? `<div>Swell Dir: ${degToCompass(
+                            marineData.current.swell_wave_direction
+                          )}</div>`
+                        : ""
+                    }
                   </div>
                 </div>
-              ` : ''}
+              `
+                  : ""
+              }
             </div>
 
             <div style="display: flex; gap: 8px; margin-top: 16px;">
@@ -188,15 +236,23 @@ export const useMapInitialization = (
       const east = bounds.getEast();
 
       const latSteps = [];
-      for (let lat = Math.max(-89.5, south); lat <= Math.min(89.5, north); lat = +(lat + GRID_STEP).toFixed(6)) {
+      for (
+        let lat = Math.max(-89.5, south);
+        lat <= Math.min(89.5, north);
+        lat = +(lat + GRID_STEP).toFixed(6)
+      ) {
         latSteps.push(lat);
       }
-      
+
       const lngSteps = [];
       let normalizedWest = west;
       let normalizedEast = east;
       if (east < west) normalizedEast = east + 360;
-      for (let lng = normalizedWest; lng <= normalizedEast; lng = +(lng + GRID_STEP).toFixed(6)) {
+      for (
+        let lng = normalizedWest;
+        lng <= normalizedEast;
+        lng = +(lng + GRID_STEP).toFixed(6)
+      ) {
         const normalizedLng = ((lng + 540) % 360) - 180;
         lngSteps.push(normalizedLng);
       }
@@ -218,7 +274,10 @@ export const useMapInitialization = (
           batch.map(async (pt) => {
             try {
               const marineData = await fetchMarineData(pt.lat, pt.lng);
-              if (!marineData?.current || marineData.current.wave_height == null) {
+              if (
+                !marineData?.current ||
+                marineData.current.wave_height == null
+              ) {
                 return;
               }
 
@@ -238,11 +297,16 @@ export const useMapInitialization = (
 
               if (isSevere) {
                 const summaryParts = [];
-                if (wind_s >= THRESHOLDS.wind_speed_kmh) summaryParts.push(`Wind ${Math.round(wind_s)} km/h`);
-                if (wind_g >= THRESHOLDS.wind_gust_kmh) summaryParts.push(`Gust ${Math.round(wind_g)} km/h`);
-                if (wave_h >= THRESHOLDS.wave_height_m) summaryParts.push(`Wave ${wave_h.toFixed(1)} m`);
-                if (precip >= THRESHOLDS.precipitation_mm_h) summaryParts.push(`Precip ${precip} mm`);
-                const summary = summaryParts.join(" • ") || "Strong marine conditions";
+                if (wind_s >= THRESHOLDS.wind_speed_kmh)
+                  summaryParts.push(`Wind ${Math.round(wind_s)} km/h`);
+                if (wind_g >= THRESHOLDS.wind_gust_kmh)
+                  summaryParts.push(`Gust ${Math.round(wind_g)} km/h`);
+                if (wave_h >= THRESHOLDS.wave_height_m)
+                  summaryParts.push(`Wave ${wave_h.toFixed(1)} m`);
+                if (precip >= THRESHOLDS.precipitation_mm_h)
+                  summaryParts.push(`Precip ${precip} mm`);
+                const summary =
+                  summaryParts.join(" • ") || "Strong marine conditions";
 
                 addWarningMarker(pt.lat, pt.lng, summary, {
                   wind_speed: Math.round(wind_s),
@@ -270,7 +334,8 @@ export const useMapInitialization = (
       L.tileLayer(
         "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png",
         {
-          attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>',
+          attribution:
+            '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>',
         }
       ).addTo(map);
 
@@ -299,7 +364,7 @@ export const useMapInitialization = (
       window.viewStormDetails = async (lat, lng) => {
         const popupContent = await createStormDetailsPopup(lat, lng);
         const L = window.L;
-        
+
         // Create a temporary marker for the detailed popup
         const tempMarker = L.marker([lat, lng])
           .addTo(map)
@@ -310,7 +375,7 @@ export const useMapInitialization = (
           .openPopup();
 
         // Remove the temporary marker when popup closes
-        tempMarker.on('popupclose', function() {
+        tempMarker.on("popupclose", function () {
           map.removeLayer(tempMarker);
         });
       };
@@ -367,7 +432,7 @@ export const useMapInitialization = (
       // Map click handler
       map.on("click", async (e) => {
         const { lat, lng } = e.latlng;
-        
+
         // Create data selection popup
         const selectionPopupContent = `
           <div style="min-width: 280px; padding: 16px;">
@@ -476,23 +541,9 @@ export const useMapInitialization = (
           .bindPopup(selectionPopupContent, {
             maxWidth: 320,
             className: "selection-popup",
+            autoPan: true
           })
           .openPopup();
-
-        // Set global functions for selection popup
-        window.selectDataType = async (lat, lng, dataType) => {
-          // This will be handled by the main component
-        };
-
-        window.requestRescueAtLocation = (lat, lng) => {
-          const reason = prompt(
-            "Enter rescue reason (e.g. 'sinking', 'engine malfunction', 'medical emergency'):",
-            "emergency distress"
-          );
-          if (reason) {
-            requestRescueAt(lat, lng, reason);
-          }
-        };
       });
 
       // Initial scan and movement handlers
