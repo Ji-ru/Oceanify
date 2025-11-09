@@ -58,35 +58,35 @@ export default function DashboardPage() {
   useEffect(() => {
     const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
-    const setDemoData = () => {
-      setWeatherData({
-        current: {
-          temperature_2m: 28.5,
-          apparent_temperature: 30.1,
-          wind_speed_10m: 12.3,
-          wind_direction_10m: 180,
-          wind_gusts_10m: 18.1,
-          precipitation: 0,
-          weather_code: 1,
-          relative_humidity_2m: 75,
-          cloud_cover: 35,
-          surface_pressure: 1010.2,
-          time: new Date().toISOString(),
-          is_day: 1,
-        },
-      });
+    // const setDemoData = () => {
+    //   setWeatherData({
+    //     current: {
+    //       temperature_2m: 28.5,
+    //       apparent_temperature: 30.1,
+    //       wind_speed_10m: 12.3,
+    //       wind_direction_10m: 180,
+    //       wind_gusts_10m: 18.1,
+    //       precipitation: 0,
+    //       weather_code: 1,
+    //       relative_humidity_2m: 75,
+    //       cloud_cover: 35,
+    //       surface_pressure: 1010.2,
+    //       time: new Date().toISOString(),
+    //       is_day: 1,
+    //     },
+    //   });
 
-      setWaveData({
-        current: {
-          wave_height: 1.8,
-          wave_direction: 150,
-          swell_wave_height: 1.5,
-          swell_wave_direction: 145,
-          secondary_swell_wave_height: 0.6,
-          secondary_swell_wave_period: 7.5,
-        },
-      });
-    };
+    //   setWaveData({
+    //     current: {
+    //       wave_height: 1.8,
+    //       wave_direction: 150,
+    //       swell_wave_height: 1.5,
+    //       swell_wave_direction: 145,
+    //       secondary_swell_wave_height: 0.6,
+    //       secondary_swell_wave_period: 7.5,
+    //     },
+    //   });
+    // };
 
     const getUserLocation = () => {
       navigator.geolocation.getCurrentPosition(
@@ -106,7 +106,7 @@ export default function DashboardPage() {
               setGlobalLoading: true,
             });
           } catch {
-            setDemoData();
+            // setDemoData();
           }
         },
         { enableHighAccuracy: true, timeout: 10000 }

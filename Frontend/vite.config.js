@@ -15,8 +15,8 @@ export default defineConfig({
         "apple-touch-icon.png",
       ],
       manifest: {
-        name: "Your App Name",
-        short_name: "AppName",
+        name: "Oceanify: Weather and Wave Application",
+        short_name: "Oceanify",
         description: "Your React + Vite web application",
         theme_color: "#ffffff",
         background_color: "#ffffff",

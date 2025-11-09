@@ -19,6 +19,7 @@ import RescueModal from "../../components/MapComponents/RescueModal";
 import Navbar from "../../components/Navbar";
 import MarineVisualizer from "../../marineVisualizer/MarineVisualizer";
 import AdminEmergencyMarkers from "../../components/MapComponents/AdminEmergencyMarkers";
+import WeatherNotificationPanel from "../../components/MapComponents/WeatherNotificationPanel";
 
 export default function AdminMaps() {
   const mapRef = useRef(null);
@@ -259,14 +260,15 @@ export default function AdminMaps() {
       {/* Navbar */}
       <Navbar />
 
+      {/* Weather Notification Panel */}
+      <WeatherNotificationPanel />
+
       {/* Map */}
       <div id="map" className="absolute inset-0 z-0" />
-
       <MarineVisualizer
         lat={rescueFlow.selectedLat}
         lng={rescueFlow.selectedLng}
       />
-
       {/* Toggle Buttons */}
       <ControlToggleButton
         showControlsPanel={showControlsPanel}
@@ -275,7 +277,6 @@ export default function AdminMaps() {
         toggleAlertsPanel={toggleAlertsPanel}
         alertsCount={alerts.length}
       />
-
       {/* Control Panel */}
       <ControlPanel
         visible={showControlsPanel}
@@ -296,17 +297,14 @@ export default function AdminMaps() {
         onTogglePorts={togglePortMarkers}
         onLogout={() => navigate("/")}
       />
-
       {/* Alerts Panel */}
       <AlertsPanel
         visible={showAlertsPanel}
         onClose={() => setShowAlertsPanel(false)}
         alerts={alerts}
       />
-
       {/* Admin-only Rescue Markers */}
       <AdminEmergencyMarkers mapRef={mapRef} />
-
       {/* Forecast Panel */}
       <ForecastPanel
         visible={showForecastPanel}
@@ -315,7 +313,6 @@ export default function AdminMaps() {
         currentLocation={currentLocation}
         selectedLocation={selectedLocation}
       />
-
       {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -325,7 +322,6 @@ export default function AdminMaps() {
           </div>
         </div>
       )}
-
       {/* Rescue Modal */}
       <RescueModal {...rescueFlow} />
     </div>
