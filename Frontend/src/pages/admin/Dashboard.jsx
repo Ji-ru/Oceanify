@@ -8,7 +8,7 @@ import mindanaoPorts from "../../data/ports.json";
 import supabase from "../../supabaseClient";
 import API from "../../api";
 // Weather hook (provides cached fetch)
-import { useWeatherData } from "../../hooks/useWeatherData";
+import { useWeatherData } from "../../hooks/useWeatherForecast";
 //Icons
 import { Waves, Compass, Clock, ArrowUpDown, Droplet } from "lucide-react";
 import { Droplets, Cloud, Gauge, Eye, Sun, Moon } from "lucide-react";

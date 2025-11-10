@@ -1,5 +1,5 @@
 import React from "react";
-import API from "../api";
+import API from "../../api";
 
 const AccountTable = ({ accounts, onEdit, onReload }) => {
   const handleDelete = async (id) => {

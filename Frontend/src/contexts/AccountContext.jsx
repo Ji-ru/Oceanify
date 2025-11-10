@@ -58,7 +58,7 @@ export const AccountProvider = ({ children }) => {
         loadAccounts,
         addAccount,
         updateAccount,
-        removeAccount,
+      removeAccount,
         setAccounts
       }}
     >

@@ -1,4 +1,4 @@
-import { WEATHER_API_BASE, MARINE_API_BASE } from './constants';
+import { WEATHER_API_BASE, MARINE_API_BASE } from "./constants";
 
 export const fetchForecastData = async (lat, lng) => {
   try {
@@ -44,7 +44,7 @@ export const fetchWaveData = async (lat, lng) => {
 
 export const fetchMarineData = async (lat, lng) => {
   try {
-    const marineUrl = `${WEATHER_API_BASE}/marine?latitude=${lat}&longitude=${lng}&current=wave_height&timezone=auto`;
+    const marineUrl = `${MARINE_API_BASE}/marine?latitude=${lat}&longitude=${lng}&current=wave_height,wave_direction&timezone=auto`;
     const response = await fetch(marineUrl);
     if (response.ok) {
       return await response.json();

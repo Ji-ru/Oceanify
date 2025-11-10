@@ -15,7 +15,7 @@ export default defineConfig({
         "apple-touch-icon.png",
       ],
       manifest: {
-        name: "Oceanify: Weather and Wave Application",
+        name: "Weather and Wave Application",
         short_name: "Oceanify",
         description: "Your React + Vite web application",
         theme_color: "#ffffff",
@@ -36,4 +36,16 @@ export default defineConfig({
     host: true, // or '0.0.0.0'
     port: 5173,
   },
+  optimizeDeps: {
+    include: ['leaflet-velocity'],
+    esbuildOptions: {
+      // Treat leaflet-velocity as CommonJS
+      mainFields: ['main', 'browser']
+    }
+  },
+  build: {
+    commonjsOptions: {
+      include: [/leaflet-velocity/, /node_modules/]
+    }
+  }
 });

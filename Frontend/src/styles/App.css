@@ -1,8 +1,16 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+@import "leaflet-velocity/dist/leaflet-velocity.css";
 
-  html, body, #root {
-    font-family: 'Satoshi', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  }
-  /* Add other weights/styles as needed */
+html,
+body,
+#root {
+  font-family: 'Satoshi', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
 
-  
+/* Add other weights/styles as needed */
+
+.wind-layer-canvas {
+  pointer-events: none;
+  z-index: 400;
+}

@@ -3,7 +3,7 @@ import { useState } from "react";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
-import supabase from "../supabaseClient";
+import supabase from "../../supabaseClient";
 
 const CreateAccountModal = ({ show, onClose, onReload }) => {
   const [form, setForm] = useState({

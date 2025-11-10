@@ -352,12 +352,20 @@ export const useMapInitialization = (
         `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
         { opacity: 0.6 }
       );
+      const cloudsLayer = L.tileLayer(
+        `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
+        { opacity: 0.6 }
+      );
+
+      // Wind velocity layer - will be initialized when needed
+      map.windLayer = null;
 
       tempLayer.addTo(map);
       map.tempLayer = tempLayer;
       map.pressureLayer = pressureLayer;
       map.precipitationLayer = precipitationLayer;
-
+      map.cloudsLayer = cloudsLayer;
+      
       setMapLoaded(true);
 
       // Set global functions for storm markers
@@ -541,7 +549,7 @@ export const useMapInitialization = (
           .bindPopup(selectionPopupContent, {
             maxWidth: 320,
             className: "selection-popup",
-            autoPan: true
+            autoPan: true,
           })
           .openPopup();
       });

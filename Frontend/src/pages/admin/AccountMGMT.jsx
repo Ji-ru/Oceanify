@@ -3,9 +3,9 @@ import React, { useState, useEffect } from "react";
 // Components
 import Navbar from "../../components/Navbar";
 import { useNavigate } from "react-router-dom";
-import AccountTable from "../../components/AccountTable";
-import EditAccountModal from "../../components/EditAccountModal";
-import CreateAccountModal from "../../components/CreateAccountModal";
+import AccountTable from "../../components/AccountComponent/AccountTable";
+import EditAccountModal from "../../components/AccountComponent/EditAccountModal";
+import CreateAccountModal from "../../components/AccountComponent/CreateAccountModal";
 // Context
 import { useAccounts } from "../../contexts/AccountContext";
 

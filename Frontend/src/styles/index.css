@@ -1,2 +1,4 @@
 @import "tailwindcss";
 @import 'bootstrap/dist/css/bootstrap.min.css';
+@import "leaflet/dist/leaflet.css";
+@import "leaflet-velocity/dist/leaflet-velocity.css";

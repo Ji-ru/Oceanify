@@ -1,40 +1,41 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMapInitialization } from "../../hooks/useMapInitialization";
-import { useWeatherData } from "../../hooks/useWeatherData";
+import { useWeatherData } from "../../hooks/useWeatherForecast";
 import { useRescueFlow } from "../../hooks/useRescueFlow";
 import { useAlerts } from "../../hooks/useAlerts";
 import { usePortMarkers } from "../../hooks/usePortMarkers";
 import { createWeatherPopup, createWavePopup } from "../../utils/mapUtils";
-import {
-  formatValue,
-  degToCompass,
-  getWeatherDescription,
-} from "../../utils/weatherUtils";
 import ControlPanel from "../../components/MapComponents/ControlPanel";
 import AlertsPanel from "../../components/MapComponents/AlertsPanel";
 import ForecastPanel from "../../components/MapComponents/ForecastPanel";
-import ControlToggleButton from "../../components/MapComponents/ControlToggleButton";
+import ControlToggleButton from "../../components/MapComponents/ControlToggleLayers";
 import RescueModal from "../../components/MapComponents/RescueModal";
 import Navbar from "../../components/Navbar";
 import MarineVisualizer from "../../marineVisualizer/MarineVisualizer";
 import AdminEmergencyMarkers from "../../components/MapComponents/AdminEmergencyMarkers";
 import WeatherNotificationPanel from "../../components/MapComponents/WeatherNotificationPanel";
+import {
+  fetchWindDataForBounds,
+  initializeWindLayer,
+} from "../../utils/windLayerUtils";
 
 export default function AdminMaps() {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const warningMarkersRef = useRef([]);
+  const windLayerRef = useRef(null);
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showTemperature, setShowTemperature] = useState(true);
   const [showPressure, setShowPressure] = useState(false);
   const [showStorm, setShowStorm] = useState(false);
+  const [showClouds, setShowClouds] = useState(false);
+  const [showWind, setShowWind] = useState(false);
+  const [windLoading, setWindLoading] = useState(false);
   const [showForecastPanel, setShowForecastPanel] = useState(false);
   const [showControlsPanel, setShowControlsPanel] = useState(false);
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
-
-  const navigate = useNavigate();
 
   // Custom hooks
   const {
@@ -60,6 +61,157 @@ export default function AdminMaps() {
     setShowForecastPanel,
     rescueFlow.requestRescueAt
   );
+
+  useEffect(() => {
+  if (!mapLoaded) return;
+
+  const preloadWindLibrary = async () => {
+    try {
+      const module = await import('leaflet-velocity');
+      console.log('Wind library preloaded successfully', {
+        hasVelocityLayer: !!module.velocityLayer,
+        hasDefault: !!module.default,
+        moduleKeys: Object.keys(module)
+      });
+      
+      // Also check if it's available on window.L
+      if (window.L) {
+        console.log('window.L.velocityLayer available:', !!window.L.velocityLayer);
+      }
+    } catch (error) {
+      console.warn('Failed to preload wind library:', error);
+    }
+  };
+
+  preloadWindLibrary();
+}, [mapLoaded]);
+
+  // Handle wind layer toggle - FIXED VERSION
+  const toggleWindLayer = useCallback(async () => {
+    if (!mapRef.current || !mapLoaded) {
+      console.warn("Map not ready");
+      return;
+    }
+
+    const map = mapRef.current;
+
+    if (showWind && windLayerRef.current) {
+      // Remove wind layer
+      try {
+        if (map.hasLayer(windLayerRef.current)) {
+          map.removeLayer(windLayerRef.current);
+        }
+        windLayerRef.current = null;
+        setShowWind(false);
+        console.log("Wind layer removed");
+      } catch (error) {
+        console.error("Error removing wind layer:", error);
+      }
+    } else {
+      // Add wind layer
+      setWindLoading(true);
+
+      try {
+        console.log("Fetching wind data...");
+        const windData = await fetchWindDataForBounds(map);
+
+        if (!windData) {
+          throw new Error("No wind data received");
+        }
+
+        console.log("Wind data received:", windData);
+
+        // Remove old layer if exists
+        if (windLayerRef.current) {
+          try {
+            if (map.hasLayer(windLayerRef.current)) {
+              map.removeLayer(windLayerRef.current);
+            }
+          } catch (e) {
+            console.warn("Error removing old wind layer:", e);
+          }
+        }
+
+        // Create new wind layer - NOW AWAITING PROPERLY
+        console.log("Initializing wind layer...");
+        const windLayer = await initializeWindLayer(windData);
+
+        if (!windLayer) {
+          throw new Error("Failed to initialize wind layer");
+        }
+
+        windLayer.addTo(map);
+        windLayerRef.current = windLayer;
+        setShowWind(true);
+        console.log("Wind layer added successfully");
+      } catch (error) {
+        console.error("Error loading wind layer:", error);
+        alert(`Failed to load wind data: ${error.message}`);
+        setShowWind(false);
+      } finally {
+        setWindLoading(false);
+      }
+    }
+  }, [mapLoaded, showWind]);
+
+  // Update wind layer when map moves (debounced) - FIXED VERSION
+  useEffect(() => {
+    if (!mapLoaded || !showWind || !mapRef.current) return;
+
+    const map = mapRef.current;
+    let moveTimeout;
+
+    const updateWindLayer = async () => {
+      try {
+        console.log("Updating wind layer for new bounds...");
+        const windData = await fetchWindDataForBounds(map);
+
+        if (!windData || !windLayerRef.current) return;
+
+        // Remove old layer
+        if (map.hasLayer(windLayerRef.current)) {
+          map.removeLayer(windLayerRef.current);
+        }
+
+        // Create and add new layer - ADD AWAIT HERE TOO
+        const newWindLayer = await initializeWindLayer(windData);
+        if (newWindLayer) {
+          newWindLayer.addTo(map);
+          windLayerRef.current = newWindLayer;
+          console.log("Wind layer updated");
+        }
+      } catch (error) {
+        console.error("Error updating wind layer:", error);
+      }
+    };
+
+    const handleMoveEnd = () => {
+      clearTimeout(moveTimeout);
+      moveTimeout = setTimeout(updateWindLayer, 2000);
+    };
+
+    map.on("moveend", handleMoveEnd);
+
+    return () => {
+      map.off("moveend", handleMoveEnd);
+      clearTimeout(moveTimeout);
+    };
+  }, [mapLoaded, showWind]);
+
+  // Cleanup wind layer on unmount
+  useEffect(() => {
+    return () => {
+      if (windLayerRef.current && mapRef.current) {
+        try {
+          if (mapRef.current.hasLayer(windLayerRef.current)) {
+            mapRef.current.removeLayer(windLayerRef.current);
+          }
+        } catch (e) {
+          console.warn("Error cleaning up wind layer:", e);
+        }
+      }
+    };
+  }, []);
 
   // Handle location data fetching - wrap in useCallback to prevent infinite re-renders
   const handleLocationDataFetch = useCallback(
@@ -158,6 +310,7 @@ export default function AdminMaps() {
 
   useEffect(() => {
     if (!mapLoaded) return;
+
     // Set global functions immediately
     window.viewWeatherData = async (lat, lng, locationName) => {
       setShowControlsPanel(false);
@@ -190,7 +343,7 @@ export default function AdminMaps() {
       }
     };
 
-    // Cleanup function - FIXED: added requestRescueAtLocation
+    // Cleanup function
     return () => {
       window.viewWeatherData = undefined;
       window.viewWaveData = undefined;
@@ -198,12 +351,12 @@ export default function AdminMaps() {
       window.requestRescueAtLocation = undefined;
       window.closePopup = undefined;
     };
-  }, [mapLoaded, handleLocationDataFetch, rescueFlow, fetchLocationData]); // Now this is stable due to useCallback
+  }, [mapLoaded, handleLocationDataFetch, rescueFlow]);
 
   useEffect(() => {
     // Only auto-show for initial load, not when user manually closes
     if (forecastData && currentLocation && !showForecastPanel) {
-      const isInitialLoad = !rescueFlow.selectedLat; // Only auto-show if no location selected
+      const isInitialLoad = !rescueFlow.selectedLat;
       if (isInitialLoad) {
         console.log("Auto-showing forecast panel for:", currentLocation);
         setShowForecastPanel(true);
@@ -265,10 +418,13 @@ export default function AdminMaps() {
 
       {/* Map */}
       <div id="map" className="absolute inset-0 z-0" />
+
+      {/* Marine Visualizer */}
       <MarineVisualizer
         lat={rescueFlow.selectedLat}
         lng={rescueFlow.selectedLng}
       />
+
       {/* Toggle Buttons */}
       <ControlToggleButton
         showControlsPanel={showControlsPanel}
@@ -277,6 +433,7 @@ export default function AdminMaps() {
         toggleAlertsPanel={toggleAlertsPanel}
         alertsCount={alerts.length}
       />
+
       {/* Control Panel */}
       <ControlPanel
         visible={showControlsPanel}
@@ -284,7 +441,10 @@ export default function AdminMaps() {
         showTemperature={showTemperature}
         showPressure={showPressure}
         showStorm={showStorm}
+        showClouds={showClouds}
+        showWind={showWind}
         showPorts={showPorts}
+        windLoading={windLoading}
         onToggleTemperature={() =>
           toggleLayer("tempLayer", showTemperature, setShowTemperature)
         }
@@ -294,17 +454,20 @@ export default function AdminMaps() {
         onToggleStorm={() =>
           toggleLayer("precipitationLayer", showStorm, setShowStorm)
         }
+        onToggleClouds={() =>
+          toggleLayer("cloudsLayer", showClouds, setShowClouds)
+        }
+        onToggleWind={toggleWindLayer}
         onTogglePorts={togglePortMarkers}
-        onLogout={() => navigate("/")}
       />
+
       {/* Alerts Panel */}
       <AlertsPanel
         visible={showAlertsPanel}
         onClose={() => setShowAlertsPanel(false)}
         alerts={alerts}
       />
-      {/* Admin-only Rescue Markers */}
-      <AdminEmergencyMarkers mapRef={mapRef} />
+
       {/* Forecast Panel */}
       <ForecastPanel
         visible={showForecastPanel}
@@ -313,6 +476,7 @@ export default function AdminMaps() {
         currentLocation={currentLocation}
         selectedLocation={selectedLocation}
       />
+
       {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -322,6 +486,17 @@ export default function AdminMaps() {
           </div>
         </div>
       )}
+
+      {/* Wind Loading Overlay */}
+      {windLoading && (
+        <div className="fixed inset-0 z-[2001] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="flex items-center gap-4 p-6 border border-blue-300/30 bg-blue-500/10 rounded-2xl backdrop-blur-2xl">
+            <div className="w-8 h-8 border-b-2 border-blue-300 rounded-full animate-spin"></div>
+            <div className="text-lg text-blue-100">Loading Wind Data...</div>
+          </div>
+        </div>
+      )}
+
       {/* Rescue Modal */}
       <RescueModal {...rescueFlow} />
     </div>
