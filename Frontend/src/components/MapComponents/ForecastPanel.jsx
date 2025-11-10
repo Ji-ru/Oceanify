@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { getWeatherIcon } from "../../utils/weatherUtils";
 import { DAYS_OF_WEEK } from "../../utils/constants";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 const ForecastPanel = ({
   visible,
@@ -9,58 +10,126 @@ const ForecastPanel = ({
   currentLocation,
   selectedLocation,
 }) => {
+  const [isMinimized, setIsMinimized] = useState(false);
+
   if (!visible) return null;
   if (!forecastData?.daily) return null;
+
   const { daily } = forecastData;
   const displayLocation = selectedLocation || currentLocation;
 
-  const getLocationName = () => {
-    if (selectedLocation) {
-      return "Selected Location";
-    }
-    return "Your Location";
-  };
+  const getLocationName = () =>
+    selectedLocation ? "Selected Location" : "Your Location";
 
+  const toggleMinimize = () => setIsMinimized(!isMinimized);
+
+  // ✅ Consistent width container for both states
+  const PanelContainer = ({ children }) => (
+    <div
+      className="
+      fixed z-50 bottom-4 
+      left-2 right-2          /* ✅ full width on mobile */
+      sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 /* ✅ center on tablet+ */
+      md:w-auto md:max-w-max  /* ✅ don't force width */
+    "
+    >
+      {children}
+    </div>
+  );
+
+  // ✅ Minimized View
+  if (isMinimized) {
+    return (
+      <PanelContainer>
+        <div className="bg-[#1e1e1e] border border-neutral-600 rounded-2xl shadow-lg">
+          <div className="p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <h3 className="text-sm font-semibold text-white">
+                  7-DAY FORECAST - {getLocationName()}
+                </h3>
+                {displayLocation && (
+                  <div className="text-xs text-gray-400 truncate">
+                    {displayLocation.lat.toFixed(2)}°N,{" "}
+                    {displayLocation.lng.toFixed(2)}°E
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={toggleMinimize}
+                className="flex items-center justify-center w-6 h-6 transition-all duration-200 border rounded bg-[#272727] hover:bg-[#373737] border-[#373737]"
+                title="Expand forecast"
+              >
+                <ChevronDown className="w-3 h-3 text-white" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">
+                  {getWeatherIcon(daily.weather_code[0], true)}
+                </div>
+                <div>
+                  <div className="text-xs text-gray-400">Today</div>
+                  <div className="flex items-baseline gap-2">
+                    <div className="text-lg font-bold text-white">
+                      {Math.round(daily.temperature_2m_max[0])}°
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {Math.round(daily.temperature_2m_min[0])}°
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {daily.precipitation_probability_max?.[0] > 20 && (
+                <div className="flex items-center gap-1 px-2 py-1 text-xs rounded text-white bg-[#272727]">
+                  <svg
+                    className="w-3 h-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  {daily.precipitation_probability_max[0]}%
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </PanelContainer>
+    );
+  }
+
+  // ✅ Expanded View
   return (
-    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="border shadow-2xl bg-gradient-to-br from-white/10 to-white/5 border-white/20 rounded-2xl backdrop-blur-2xl pointer-events-auto">
+    <PanelContainer>
+      <div className="bg-[#1e1e1e] border border-neutral-600 rounded-2xl shadow-lg">
         <div className="p-4">
-          {/* Header */}
-          <div className="relative flex items-center justify-center mb-4">
-            <div className="flex items-center gap-3">
+          <div className="relative flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
               <h3 className="text-sm font-semibold text-white">
                 7-DAY FORECAST - {getLocationName()}
               </h3>
               {displayLocation && (
-                <div className="text-xs text-white/60">
+                <div className="text-xs text-gray-400 truncate">
                   {displayLocation.lat.toFixed(2)}°N,{" "}
                   {displayLocation.lng.toFixed(2)}°E
                 </div>
               )}
             </div>
-            {/* Close Button */}
+
             <button
-              onClick={onClose}
-              className="absolute right-0 flex items-center justify-center w-6 h-6 transition-all duration-200 border rounded-full bg-white/10 hover:bg-white/20 border-white/20"
+              onClick={toggleMinimize}
+              className="flex items-center justify-center w-6 h-6 transition-all duration-200 border rounded bg-[#272727] hover:bg-[#373737] border-[#373737]"
+              title="Minimize forecast"
             >
-              <svg
-                className="w-3 h-3 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <ChevronUp className="w-3 h-3 text-white" />
             </button>
           </div>
 
-          {/* Horizontal Forecast Items */}
-          <div className="flex justify-center gap-2 pb-2 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 pb-2 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-[#0f0f0f]">
             {daily.time.slice(0, 7).map((date, index) => {
               const dayName =
                 index === 0 ? "TODAY" : DAYS_OF_WEEK[new Date(date).getDay()];
@@ -76,39 +145,30 @@ const ForecastPanel = ({
               return (
                 <div
                   key={index}
-                  className="flex-shrink-0 w-20 p-3 transition-all duration-300 border shadow-lg bg-gradient-to-br from-white/15 to-white/5 border-white/20 rounded-xl backdrop-blur-sm hover:from-white/20 hover:to-white/10 hover:border-white/30"
+                  className="flex-shrink-0 w-20 p-3 transition-all duration-200 bg-[#272727] rounded-lg hover:bg-[#323232] sm:w-24"
                 >
                   <div className="space-y-2 text-center">
-                    {/* Day */}
-                    <div className="text-xs font-semibold tracking-wide text-white">
+                    <div className="text-xs font-semibold text-white truncate">
                       {dayName}
                     </div>
-
-                    {/* Weather Icon */}
-                    <div className="text-2xl filter drop-shadow-lg">
-                      {weatherIcon}
-                    </div>
-
-                    {/* Precipitation */}
+                    <div className="text-2xl">{weatherIcon}</div>
                     {precipitation > 20 && (
-                      <div className="flex items-center justify-center gap-1 px-2 py-1 text-xs rounded-full text-white/80 bg-white/10">
+                      <div className="flex items-center justify-center gap-1 px-2 py-1 text-xs rounded text-white bg-[#1e1e1e]">
                         <svg
                           className="w-3 h-3"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
-                          <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+                          <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1z" />
                         </svg>
                         {precipitation}%
                       </div>
                     )}
-
-                    {/* Temperatures */}
                     <div className="flex items-baseline justify-center gap-2">
-                      <div className="text-lg font-bold text-white drop-shadow-sm">
+                      <div className="text-lg font-bold text-white">
                         {maxTemp}°
                       </div>
-                      <div className="text-sm text-white/60">{minTemp}°</div>
+                      <div className="text-sm text-gray-400">{minTemp}°</div>
                     </div>
                   </div>
                 </div>
@@ -116,13 +176,13 @@ const ForecastPanel = ({
             })}
           </div>
 
-          {/* Hidden Scroll Indicator */}
-          <div className="flex justify-center mt-2">
-            <div className="w-20 h-1 rounded-full bg-white/20"></div>
+          {/* Scroll bar indicator on mobile */}
+          <div className="flex justify-center mt-3 sm:hidden">
+            <div className="w-20 h-1 rounded-full bg-[#272727]" />
           </div>
         </div>
       </div>
-    </div>
+    </PanelContainer>
   );
 };
 

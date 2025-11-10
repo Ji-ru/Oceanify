@@ -9,14 +9,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: [
-        "favicon.ico",
-        "robots.txt",
-        "apple-touch-icon.png",
-      ],
+      includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       manifest: {
-        name: "Your App Name",
-        short_name: "AppName",
+        name: "Oceanify: Weather and Wave Application",
+        short_name: "Oceanify",
         description: "Your React + Vite web application",
         theme_color: "#ffffff",
         background_color: "#ffffff",
@@ -27,7 +23,7 @@ export default defineConfig({
             src: "/oceanify.png",
             sizes: "360x360",
             type: "image/png",
-          }
+          },
         ],
       },
     }),

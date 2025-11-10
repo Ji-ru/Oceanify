@@ -1,0 +1,17 @@
+{
+  "short_name": "Oceanify",
+  "name": "Oceanify: Weather and Wave Application",
+  "icons": [
+    {
+      "src": "./oceanify.png",
+      "sizes": "320x320",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f0f0f",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#2563eb",
+  "description": "Monitor and respond to emergency rescue requests in real-time."
+}

@@ -1,17 +1,19 @@
-import React from 'react';
+import React from "react";
 
 const AlertsPanel = ({ visible, onClose, alerts }) => {
   if (!visible) return null;
 
   return (
-    <div className="fixed duration-300 top-72 right-4 z-50 w-80 animate-in slide-in-from-right">
+    <div className="fixed z-50 duration-300 top-72 right-4 w-80 animate-in slide-in-from-right">
       <div className="border shadow-2xl bg-gradient-to-br from-red-900/90 to-orange-900/70 border-red-500/30 rounded-2xl backdrop-blur-2xl">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-red-400 rounded-full shadow-lg"></div>
-              <h3 className="text-sm font-semibold tracking-wide text-white">MARINE ALERTS</h3>
+              <h3 className="text-sm font-semibold tracking-wide text-white">
+                MARINE ALERTS
+              </h3>
             </div>
             <button
               onClick={onClose}
@@ -38,7 +40,9 @@ const AlertsPanel = ({ visible, onClose, alerts }) => {
             {alerts.length === 0 ? (
               <div className="py-8 text-center">
                 <div className="mb-2 text-4xl">🌊</div>
-                <div className="mb-1 text-sm text-white/70">No active alerts</div>
+                <div className="mb-1 text-sm text-white/70">
+                  No active alertsss
+                </div>
                 <div className="text-xs text-white/50">
                   Storm warnings and safety notices will appear here
                 </div>

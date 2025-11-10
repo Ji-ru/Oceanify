@@ -10,16 +10,16 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
-import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
-import AccountMGMT from "./pages/admin/AccountMGMT";
-import AdminMap from "./pages/admin/AdminMap";
-import AdminRescueManagement from "./pages/admin/AdminRescueManagement"; // ← ADD THIS
-import AlertMGMT from "./pages/admin/AlertMGMT";
-import Dashboard from "./pages/admin/Dashboard";
-import RescueButton from "./pages/user/RescueButton";
-import UserMap from "./pages/user/UserMap";
-import Profile from "./pages/Profile";
+import SignIn from "./pages/webapp/SignIn";
+import SignUp from "./pages/webapp/SignUp";
+import AccountManagement from "./pages/webapp/AccountManagement";
+import Map from "./pages/webapp/Map";
+import RescueManagement from "./pages/webapp/RescueManagement"; // ← ADD THIS
+import AlertManagement from "./pages/webapp/AlertManagement";
+import Dashboard from "./pages/webapp/Dashboard";
+import Profile from "./pages/webapp/Profile";
+import RescueButton from "./components/RescueButton";
+import LandingPage from "./pages/weblanding/LandingPage";
 
 function App() {
   return (
@@ -29,7 +29,7 @@ function App() {
           {/* -----------------------------
               Default Route
           ----------------------------- */}
-          <Route path="/" element={<SignIn />} />
+          <Route path="/" element={<LandingPage />} />
 
           {/* -----------------------------
               Public Pages
@@ -52,7 +52,7 @@ function App() {
             path="/map"
             element={
               <ProtectedRoute>
-                <AdminMap />
+                <Map />
               </ProtectedRoute>
             }
           />
@@ -74,7 +74,7 @@ function App() {
             path="/accounts-management"
             element={
               <ProtectedRoute requireAdmin={true}>
-                <AccountMGMT />
+                <AccountManagement />
               </ProtectedRoute>
             }
           />
@@ -82,7 +82,7 @@ function App() {
             path="/alerts-management"
             element={
               <ProtectedRoute requireAdmin={true}>
-                <AlertMGMT />
+                <AlertManagement />
               </ProtectedRoute>
             }
           />
@@ -92,19 +92,7 @@ function App() {
             path="/rescue-management"
             element={
               <ProtectedRoute requireAdmin={true}>
-                <AdminRescueManagement />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* -----------------------------
-              Internal / User Page
-          ----------------------------- */}
-          <Route
-            path="/user/home"
-            element={
-              <ProtectedRoute>
-                <UserMap />
+                <RescueManagement />
               </ProtectedRoute>
             }
           />

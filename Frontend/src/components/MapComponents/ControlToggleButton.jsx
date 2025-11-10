@@ -1,57 +1,52 @@
-import React from 'react';
+import React from "react";
+import { Layers, Bell, X } from "lucide-react";
 
 const ControlToggleButton = ({
   showControlsPanel,
   showAlertsPanel,
+  showWeatherNotification,
   toggleControlsPanel,
   toggleAlertsPanel,
-  alertsCount
+  toggleWeatherNotification,
+  alertsCount,
 }) => {
   return (
-    <div className="fixed flex flex-col gap-3 top-24 right-4 z-1000">
+    <div className="fixed flex flex-col gap-4 top-24 right-4 z-1000">
       {/* Layers Toggle */}
       <button
         onClick={toggleControlsPanel}
-        className={`p-4 bg-gradient-to-br from-white/10 to-white/5 border rounded-2xl backdrop-blur-2xl shadow-2xl hover:scale-105 transition-all duration-300 ${
-          showControlsPanel ? "border-white/30 bg-white/20" : "border-white/20"
+        className={`p-4 bg-[#1e1e1e] rounded-full border-1 border-neutral-600 hover:bg-[#272727] transition-all duration-200 ${
+          showControlsPanel ? "bg-[#272727]" : ""
         }`}
       >
-        <div className="relative w-6 h-6">
-          <div
-            className={`absolute left-0 w-6 h-0.5 bg-white transition-all duration-300 ${
-              showControlsPanel ? "rotate-45 top-3" : "top-1"
-            }`}
-          ></div>
-          <div
-            className={`absolute left-0 w-6 h-0.5 bg-white transition-all duration-300 ${
-              showControlsPanel ? "opacity-0" : "opacity-100 top-3"
-            }`}
-          ></div>
-          <div
-            className={`absolute left-0 w-6 h-0.5 bg-white transition-all duration-300 ${
-              showControlsPanel ? "-rotate-45 top-3" : "top-5"
-            }`}
-          ></div>
-        </div>
+        {showControlsPanel ? (
+          <X className="w-6 h-6 text-white" />
+        ) : (
+          <Layers className="w-6 h-6 text-white" />
+        )}
       </button>
 
-      {/* Alerts Toggle */}
+      {/* Weather Notification Toggle */}
       <button
-        onClick={toggleAlertsPanel}
-        className={`p-4 bg-gradient-to-br from-red-500/20 to-orange-500/10 border rounded-2xl backdrop-blur-2xl shadow-2xl hover:scale-105 transition-all duration-300 ${
-          showAlertsPanel
-            ? "border-red-400/50 bg-red-500/30"
-            : "border-red-500/30"
+        onClick={toggleWeatherNotification}
+        className={`p-4 bg-[#1e1e1e] rounded-full border-1 border-neutral-600 hover:bg-[#272727] transition-all duration-200 ${
+          showWeatherNotification ? "bg-[#272727]" : ""
         }`}
       >
-        <div className="relative flex items-center justify-center w-6 h-6">
-          <div className="text-lg text-white">⚠️</div>
-          {alertsCount > 0 && (
-            <div className="absolute flex items-center justify-center w-5 h-5 bg-red-500 rounded-full -top-1 -right-1">
-              <span className="text-xs font-bold text-white">
-                {alertsCount}
-              </span>
-            </div>
+        <div className="relative">
+          {showWeatherNotification ? (
+            <X className="w-6 h-6 text-white" />
+          ) : (
+            <>
+              <Bell className="w-6 h-6 text-white" />
+              {alertsCount > 0 && (
+                <div className="absolute flex items-center justify-center w-5 h-5 bg-red-500 rounded-full -top-1 -right-1">
+                  <span className="text-xs font-bold text-white">
+                    {alertsCount}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </button>
