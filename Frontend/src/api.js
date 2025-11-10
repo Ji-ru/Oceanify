@@ -7,5 +7,6 @@ const baseURL = (import.meta?.env?.VITE_API_BASE_URL || "").trim() || `${window.
 const API = axios.create({
   baseURL,
 });
+console.log("Base URL:", import.meta.env.VITE_API_BASE_URL);
 
 export default API;
