@@ -8,7 +8,7 @@ import mindanaoPorts from "../../data/ports.json";
 import supabase from "../../supabaseClient";
 import API from "../../api";
 // Weather hook (provides cached fetch)
-import { useWeatherData } from "../../hooks/useWeatherData";
+import { useWeatherData } from "../../hooks/useWeatherForecastingData";
 //Icons
 import { Waves, Compass, Clock, ArrowUpDown, Droplet } from "lucide-react";
 import { Droplets, Cloud, Gauge, Eye, Sun, Moon } from "lucide-react";
@@ -278,7 +278,6 @@ export default function DashboardPage() {
   };
 
   // Add these helper functions before getSafetyIndex()
-
   const getBeaufortScale = (windSpeed) => {
     if (windSpeed <= 1) return { score: 100, level: "Calm" };
     if (windSpeed <= 5) return { score: 90, level: "Light Air" };

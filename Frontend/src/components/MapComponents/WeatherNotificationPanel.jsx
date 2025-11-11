@@ -243,7 +243,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
       </div>
 
       <div className="flex items-center gap-1">
-        <IconButton
+        {/* <IconButton
           icon={AlertTriangle}
           onClick={(e) => {
             e.stopPropagation();
@@ -251,7 +251,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
           }}
           title="Show Alerts"
           className="text-orange-400"
-        />
+        /> */}
         <IconButton
           icon={RefreshCw}
           onClick={(e) => {
