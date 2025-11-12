@@ -32,9 +32,21 @@ class SupabaseService {
     // READ
     public function getAll($orderBy = 'id', $ascending = true) {
         $order = $ascending ? 'asc' : 'desc';
-        return $this->client()
-            ->get("{$this->url}{$this->table}?order={$orderBy}.{$order}")
-            ->json();
+        $url = "{$this->url}{$this->table}?order={$orderBy}.{$order}";
+
+        $response = $this->client()->get($url);
+
+        if ($response->failed()) {
+            info('⚠️ Supabase getAll failed');
+            info('Status: ' . $response->status());
+            info('URL: ' . $url);
+            info('Response: ' . $response->body());
+
+            return ['error' => 'Failed to fetch data', 'status' => $response->status()];
+        }
+
+        info('✅ Supabase fetch successful for: ' . $url);
+        return $response->json();
     }
 
     // UPDATE

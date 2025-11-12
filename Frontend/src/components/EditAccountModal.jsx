@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
-import axios from "axios";
+import apiClient from "../utils/apiClient"; // ✅ Changed from axios
 import { useAuth } from "../contexts/AuthContext";
 
 const EditAccountModal = ({ account, onClose, onReload }) => {
@@ -37,13 +37,8 @@ const EditAccountModal = ({ account, onClose, onReload }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post(
-        `http://localhost:8000/api/accounts/${account.id}`,
-        {
-          ...form,
-          _method: "PUT", // Laravel-style method override
-        }
-      );
+      // ✅ Using apiClient instead of axios
+      const response = await apiClient.put(`/accounts/${account.id}`, form);
 
       console.log("Update response:", response.data);
       
