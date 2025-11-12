@@ -321,7 +321,7 @@ export default function Maps() {
 
       {/* Weather Notification Panel - Conditionally render */}
       {showWeatherNotification && (
-        <WeatherNotificationPanel onShowAlerts={handleShowAlerts} />
+        <WeatherNotificationPanel onShowAlerts={() => handleShowAlerts()} />
       )}
 
       {/* Map */}

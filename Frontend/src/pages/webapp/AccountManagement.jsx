@@ -1,29 +1,75 @@
 // React core
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 // Components
 import Navbar from "../../components/Navbar";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import AccountTable from "../../components/AccountTable";
 import EditAccountModal from "../../components/EditAccountModal";
 import CreateAccountModal from "../../components/CreateAccountModal";
 // Context
 import { useAccounts } from "../../contexts/AccountContext";
 
+/**
+ * Displays Account Information of exisiting users (Admin and Users)
+ * Allows creating and updating user accounts
+ * @returns exisiting accounts from the database
+ */
 const AccountManagementPage = () => {
+  // Context: account data, loading state, and reload function
   const { accounts, loading, loadAccounts } = useAccounts();
+  // Selected Account for Updating State
   const [editAccount, setEditAccount] = useState(null);
+  // Visible or Invisible State of Create Account Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const navigate = useNavigate();
+  // Resets whenever events (Insert, Update, and Delete user) happens
+  const [lastLoaded, setLastLoaded] = useState(new Date());
+
+  // ===============================================
+  // DATA LOADING
+  // ===============================================
+
+  /**
+   * Load existing accounts on initial mount (render/display)
+   */
+  useEffect(() => {
+    loadAccounts();
+  }, [loadAccounts]);
 
   useEffect(() => {
-    // This will only fetch if accounts are empty
-    loadAccounts();
-  }, []);
+    setLastLoaded(new Date());
+  }, [accounts]);
 
+  /**
+   * Reload accounts on demand based on event:
+   * - Handles reload when inserting new user
+   * - Handles reload when updating information of the existing user
+   */
   const handleReload = () => {
     // Force refresh when needed
     loadAccounts(true);
   };
+
+  // ===============================================
+  // COMPUTED VALUES
+  // ===============================================
+
+  /**
+   * Total number of accounts (memoized for performance)
+   * Caches computed values
+   * Updates when changes are made (Insertion or Deletion of user account)
+   */
+
+  const totalAccounts = useMemo(() => accounts.length, [accounts]);
+  /**
+   * Total active users (memoized for performance)
+   * Caches computed values
+   * Updates when changes are made (Insertion or Deletion of user account)
+   */
+  const activeUsers = useMemo(() => accounts.length, [accounts]);
+
+  // ===============================================
+  // UI RENDERING + IMPLEMENTED FUNCTIONS
+  // ===============================================
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
@@ -69,19 +115,19 @@ const AccountManagementPage = () => {
             <div className="p-4 bg-[#1e1e1e] rounded-xl">
               <div className="text-sm text-gray-400">Total Accounts</div>
               <div className="mt-1 text-2xl font-bold text-white">
-                {accounts.length}
+                {totalAccounts}
               </div>
             </div>
             <div className="p-4 bg-[#1e1e1e] rounded-xl">
               <div className="text-sm text-gray-400">Active Users</div>
               <div className="mt-1 text-2xl font-bold text-white">
-                {accounts.length}
+                {activeUsers}
               </div>
             </div>
             <div className="p-4 bg-[#1e1e1e] rounded-xl">
-              <div className="text-sm text-gray-400">Last Updated</div>
+              <div className="text-sm text-gray-400">Last Loaded</div>
               <div className="mt-1 text-sm font-medium text-gray-300">
-                Just now
+                {lastLoaded.toLocaleTimeString()}
               </div>
             </div>
           </div>

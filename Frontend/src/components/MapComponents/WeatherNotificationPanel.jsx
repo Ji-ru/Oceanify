@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -14,87 +14,90 @@ import {
   getSeverityConfig,
   SEVERITY,
 } from "../../services/weatherAlertService";
-
-// Design tokens for consistent styling
-const STYLES = {
-  bg: {
-    primary: "bg-[#0f0f0f]",
-    card: "bg-[#1e1e1e]",
-    secondary: "bg-[#272727]",
-    overlay: "bg-[#1e1e1e]",
-  },
-  text: {
-    primary: "text-white",
-    secondary: "text-gray-300",
-    muted: "text-gray-400",
-    danger: "text-red-400",
-    warning: "text-orange-400",
-    caution: "text-yellow-400",
-    success: "text-green-400",
-    info: "text-blue-400",
-  },
-  border: {
-    default: "border-white/10",
-    danger: "border-red-500/30",
-    warning: "border-orange-500/30",
-    caution: "border-yellow-500/30",
-    success: "border-green-500/30",
-  },
-  spacing: {
-    xs: "p-1.5",
-    sm: "p-2",
-    md: "p-3",
-    lg: "p-4",
-    xl: "p-6",
-  },
-  radius: {
-    sm: "rounded-lg",
-    md: "rounded-xl",
-    lg: "rounded-2xl",
-  },
-};
-
+import { Notification } from "../../styles/WeatherNotificationStyles";
+import { useFormattedCoordinates } from "../../hooks/useFormattedCoords";
+/**
+ * Displays current weather alerts
+ * @param {Object} onShpwAlerts - optional callback to trigger full alert view
+ * @returns automated notification containing information of weather
+ */
 export default function WeatherNotificationPanel({ onShowAlerts }) {
+  // Whether the panel is expanded or collapsed (currentlty set to collapsed)
   const [isExpanded, setIsExpanded] = useState(false);
+  // Selected tab (overview, fishing, commercial, ports), which currently set to overview tab
   const [selectedTab, setSelectedTab] = useState("overview");
-
+  /**
+   * Hook from useWeatherAlerts function for fetching weather alert informations
+   */
   const {
     userLocationAlert,
     alertSummary,
+    userLocation,
     loading,
     error,
     lastUpdate,
     refreshAlerts,
     getAlertsBySeverity,
   } = useWeatherAlerts({
-    updateInterval: 30 * 60 * 1000,
+    updateInterval: 30 * 60 * 1000, // 30 mins
     monitorPorts: true,
     monitorUserLocation: true,
   });
 
-  // Get overall severity
-  const overallSeverity =
-    userLocationAlert?.overallSeverity ||
-    (alertSummary?.danger > 0
-      ? SEVERITY.DANGER
-      : alertSummary?.warning > 0
-      ? SEVERITY.WARNING
-      : alertSummary?.caution > 0
-      ? SEVERITY.CAUTION
-      : SEVERITY.SAFE);
+  /**
+   * Hook from useFormattedCoordinates function for formating the coordinates into a readable string with proper cardinal directions
+   */
+  const { formattedCoords } = useFormattedCoordinates(userLocation);
 
-  const severityConfig = getSeverityConfig(overallSeverity);
+  /**
+   * Compute overall severity based on user location or summary
+   * Memoizing calculated value of severity by caching to optimize performance
+   * With dependencies (userLocationAlert, alertSummary), it checks if the value is still the same, if not then caching the new data replacing the old one
+   */
+  const overallSeverity = useMemo(() => {
+    return (
+      userLocationAlert?.overallSeverity ||
+      (alertSummary?.danger > 0
+        ? SEVERITY.DANGER
+        : alertSummary?.warning > 0
+        ? SEVERITY.WARNING
+        : alertSummary?.caution > 0
+        ? SEVERITY.CAUTION
+        : SEVERITY.SAFE)
+    );
+  }, [userLocationAlert, alertSummary]);
 
-  const formatLastUpdate = () => {
+  /**
+   * Configuring object for styling and icons based on severity
+   */
+  const severityConfig = useMemo(
+    () => getSeverityConfig(overallSeverity),
+    [overallSeverity]
+  );
+
+  /**
+   * Formays last update timestamp into a human-readbale string
+   * @returns {string}
+   */
+  const formatLastUpdate = useCallback(() => {
     if (!lastUpdate) return "Never";
     const minutes = Math.floor((new Date() - lastUpdate) / 60000);
     if (minutes < 1) return "Now";
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     return `${hours}h`;
-  };
+  }, [lastUpdate]);
 
-  // Enhanced button component for consistency
+  /**
+   *
+   * @param {Object} props
+   * @param {React.Component} props.icon - Icon component
+   * @param {Function} props.onClick - Click handler or listener
+   * @param {string} props.title - Tooltip text
+   * @param {boolean} props.disabled - Disable Button
+   * @param {string} props.className - Additional classes for designing
+   * @returns renders UI design for each existing tabs in WeatherNotificationPanel
+   */
   const IconButton = ({
     icon: Icon,
     onClick,
@@ -104,7 +107,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
   }) => (
     <button
       onClick={onClick}
-      className={`${STYLES.spacing.xs} hover:bg-white/10 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-white ${className}`}
+      className={`${Notification.spacing.xs} hover:bg-white/10 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-white ${className}`}
       disabled={disabled}
       title={title}
     >
@@ -112,166 +115,190 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
     </button>
   );
 
-  const renderCompactHeader = () => (
-    <div className="flex items-center justify-between p-3">
-      <div className="flex items-center gap-2">
-        <div
-          className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm border-2 rounded-full"
-          style={{
-            backgroundColor: severityConfig.bgColor,
-            color: severityConfig.color,
-            borderColor: severityConfig.borderColor,
-          }}
-        >
-          {severityConfig.icon}
+  /**
+   * Render compact (collapsed) header of the panel
+   * @returns compacted header panel
+   */
+  const renderCompactHeader = useCallback(() => {
+    return (
+      <div className="flex items-center justify-between p-3">
+        <div className="flex items-center gap-2">
+          <div
+            className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm border-2 rounded-full"
+            style={{
+              backgroundColor: severityConfig.bgColor,
+              color: severityConfig.color,
+              borderColor: severityConfig.borderColor,
+            }}
+          >
+            {severityConfig.icon}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-white">
+                Maritime Alert
+              </span>
+              <span
+                className="px-2 py-0.5 rounded-full text-xs font-bold"
+                style={{
+                  backgroundColor: severityConfig.color,
+                  color: "white",
+                }}
+              >
+                {severityConfig.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-gray-400">
+              <Clock className="w-3 h-3" />
+              <span>{loading ? "Updating..." : formatLastUpdate()}</span>
+              {alertSummary && (
+                <span className="ml-1">• {alertSummary.total} locs</span>
+              )}
+            </div>
+          </div>
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-white">
-              Maritime Alert
-            </span>
-            <span
-              className="px-2 py-0.5 rounded-full text-xs font-bold"
-              style={{
-                backgroundColor: severityConfig.color,
-                color: "white",
-              }}
-            >
-              {severityConfig.label}
-            </span>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-gray-400">
-            <Clock className="w-3 h-3" />
-            <span>{loading ? "Updating..." : formatLastUpdate()}</span>
-            {alertSummary && (
-              <span className="ml-1">• {alertSummary.total} locs</span>
-            )}
-          </div>
+
+        <div className="flex items-center gap-1">
+          <IconButton
+            icon={RefreshCw}
+            onClick={(e) => {
+              e.stopPropagation();
+              refreshAlerts();
+            }}
+            disabled={loading}
+            className={loading ? "animate-spin" : ""}
+          />
+          {isExpanded ? (
+            <ChevronUp className="w-4 h-4 text-white" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-white" />
+          )}
         </div>
       </div>
+    );
+  }, [
+    severityConfig,
+    loading,
+    alertSummary,
+    formatLastUpdate,
+    isExpanded,
+    refreshAlerts,
+  ]);
 
-      <div className="flex items-center gap-1">
-        <IconButton
-          icon={RefreshCw}
-          onClick={(e) => {
-            e.stopPropagation();
-            refreshAlerts();
-          }}
-          disabled={loading}
-          className={loading ? "animate-spin" : ""}
-        />
-        {isExpanded ? (
-          <ChevronUp className="w-4 h-4 text-white" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-white" />
+  /**
+   * Render quick stats danger/warning/caution counts
+   * @returns displays statistics of level of weather severity of the exisiting ports (Danger, Warning, Caution)
+   */
+  const renderQuickStats = useCallback(() => {
+    if (!alertSummary) return null;
+    return (
+      <div className="flex gap-1 px-3 pb-3">
+        {alertSummary?.danger > 0 && (
+          <div
+            className={`flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded ${Notification.border.danger} bg-red-500/20`}
+          >
+            <span className="font-semibold text-red-400">
+              {alertSummary.danger}
+            </span>
+            <span className="text-red-300">Danger</span>
+          </div>
+        )}
+        {alertSummary?.warning > 0 && (
+          <div
+            className={`flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded ${Notification.border.warning} bg-orange-500/20`}
+          >
+            <span className="font-semibold text-orange-400">
+              {alertSummary.warning}
+            </span>
+            <span className="text-orange-300">Warning</span>
+          </div>
+        )}
+        {alertSummary?.caution > 0 && (
+          <div
+            className={`flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded ${Notification.border.caution} bg-yellow-500/20`}
+          >
+            <span className="font-semibold text-yellow-400">
+              {alertSummary.caution}
+            </span>
+            <span className="text-yellow-300">Caution</span>
+          </div>
         )}
       </div>
-    </div>
-  );
+    );
+  }, [alertSummary]);
 
-  const renderQuickStats = () => (
-    <div className="flex gap-1 px-3 pb-3">
-      {alertSummary?.danger > 0 && (
-        <div
-          className={`flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded ${STYLES.border.danger} bg-red-500/20`}
-        >
-          <span className="font-semibold text-red-400">
-            {alertSummary.danger}
-          </span>
-          <span className="text-red-300">Danger</span>
-        </div>
-      )}
-      {alertSummary?.warning > 0 && (
-        <div
-          className={`flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded ${STYLES.border.warning} bg-orange-500/20`}
-        >
-          <span className="font-semibold text-orange-400">
-            {alertSummary.warning}
-          </span>
-          <span className="text-orange-300">Warning</span>
-        </div>
-      )}
-      {alertSummary?.caution > 0 && (
-        <div
-          className={`flex items-center gap-1 px-2 py-1 text-xs font-medium border rounded ${STYLES.border.caution} bg-yellow-500/20`}
-        >
-          <span className="font-semibold text-yellow-400">
-            {alertSummary.caution}
-          </span>
-          <span className="text-yellow-300">Caution</span>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderExpandedHeader = () => (
-    <div className="flex items-center justify-between p-3 border-b border-white/10">
-      <div className="flex items-center gap-2">
-        <div
-          className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm border-2 rounded-full"
-          style={{
-            backgroundColor: severityConfig.bgColor,
-            color: severityConfig.color,
-            borderColor: severityConfig.borderColor,
-          }}
-        >
-          {severityConfig.icon}
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-white">
-              Maritime Alert
-            </span>
-            <span
-              className="px-2 py-0.5 rounded-full text-xs font-bold"
-              style={{
-                backgroundColor: severityConfig.color,
-                color: "white",
-              }}
-            >
-              {severityConfig.label}
-            </span>
+  /**
+   * Render expand header of the panel
+   * @returns expanded header panel
+   */
+  const renderExpandedHeader = useCallback(() => {
+    return (
+      <div className="flex items-center justify-between p-3 border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <div
+            className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm border-2 rounded-full"
+            style={{
+              backgroundColor: severityConfig.bgColor,
+              color: severityConfig.color,
+              borderColor: severityConfig.borderColor,
+            }}
+          >
+            {severityConfig.icon}
           </div>
-          <div className="flex items-center gap-1 text-xs text-gray-400">
-            <Clock className="w-3 h-3" />
-            <span>{loading ? "Updating..." : formatLastUpdate()}</span>
-            {alertSummary && (
-              <span className="ml-1">• {alertSummary.total} locs</span>
-            )}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-white">
+                Maritime Alert
+              </span>
+              <span
+                className="px-2 py-0.5 rounded-full text-xs font-bold"
+                style={{
+                  backgroundColor: severityConfig.color,
+                  color: "white",
+                }}
+              >
+                {severityConfig.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-gray-400">
+              <Clock className="w-3 h-3" />
+              <span>{loading ? "Updating..." : formatLastUpdate()}</span>
+              {alertSummary && (
+                <span className="ml-1">• {alertSummary.total} locs</span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-1">
-        {/* <IconButton
-          icon={AlertTriangle}
-          onClick={(e) => {
-            e.stopPropagation();
-            onShowAlerts?.();
-          }}
-          title="Show Alerts"
-          className="text-orange-400"
-        /> */}
-        <IconButton
-          icon={RefreshCw}
-          onClick={(e) => {
-            e.stopPropagation();
-            refreshAlerts();
-          }}
-          disabled={loading}
-          className={loading ? "animate-spin" : ""}
-        />
-        <IconButton
-          icon={ChevronUp}
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsExpanded(false);
-          }}
-        />
+        <div className="flex items-center gap-1">
+          <IconButton
+            icon={RefreshCw}
+            onClick={(e) => {
+              e.stopPropagation();
+              refreshAlerts();
+            }}
+            disabled={loading}
+            className={loading ? "animate-spin" : ""}
+          />
+          <IconButton
+            icon={ChevronUp}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(false);
+            }}
+          />
+        </div>
       </div>
-    </div>
-  );
+    );
+  }, [severityConfig, loading, alertSummary, refreshAlerts]);
 
+  /**
+   * Renders a list of weather or wave issues for display
+   * Each issue is color-coded and icon-marked based on it severity (Warning/Caution/Danger)
+   *
+   * @param {Array<Object>} issues - list of issues to display, each containing severity and message
+   * @returns a formatted list of issues or null if none exists
+   */
   const renderIssues = (issues) => {
     if (!issues || issues.length === 0) return null;
 
@@ -304,16 +331,30 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
     );
   };
 
+  /**
+   * Renders overview tab content, showing users loca
+   *
+   * @returns
+   */
   const renderOverviewTab = () => (
     <div className="space-y-3">
       {/* User Location Summary */}
       {userLocationAlert && (
         <div
-          className={`p-3  rounded-lg ${STYLES.bg.secondary} ${STYLES.border.default} backdrop-blur-sm`}
+          className={`p-3  rounded-lg ${Notification.bg.secondary} ${Notification.border.default} backdrop-blur-sm`}
         >
           <div className="flex items-center gap-2 mb-2">
             <MapPin className="w-4 h-4 text-blue-400" />
-            <h3 className="text-sm font-semibold text-white">Your Location</h3>
+            <div className="flex-row ml-3">
+              {userLocation ? (
+                <h5 className="text-sm font-semibold text-white">
+                  {formattedCoords}
+                </h5>
+              ) : (
+                <h5 className="text-sm text-gray-400"></h5>
+              )}
+              <h7 className="text-sm font-regular text-white">Your Location</h7>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
@@ -358,7 +399,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
       {alertSummary && (
         <div className="grid grid-cols-4 gap-2">
           <div
-            className={`p-2 text-center  rounded ${STYLES.border.danger} bg-red-500/10 backdrop-blur-sm`}
+            className={`p-2 text-center  rounded ${Notification.border.danger} bg-red-500/10 backdrop-blur-sm`}
           >
             <div className="text-lg font-bold text-red-400">
               {alertSummary.danger}
@@ -366,7 +407,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
             <div className="text-xs text-red-300">Danger</div>
           </div>
           <div
-            className={`p-2 text-center  rounded ${STYLES.border.warning} bg-orange-500/10 backdrop-blur-sm`}
+            className={`p-2 text-center  rounded ${Notification.border.warning} bg-orange-500/10 backdrop-blur-sm`}
           >
             <div className="text-lg font-bold text-orange-400">
               {alertSummary.warning}
@@ -374,7 +415,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
             <div className="text-xs text-orange-300">Warning</div>
           </div>
           <div
-            className={`p-2 text-center  rounded ${STYLES.border.caution} bg-yellow-500/10 backdrop-blur-sm`}
+            className={`p-2 text-center  rounded ${Notification.border.caution} bg-yellow-500/10 backdrop-blur-sm`}
           >
             <div className="text-lg font-bold text-yellow-400">
               {alertSummary.caution}
@@ -382,7 +423,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
             <div className="text-xs text-yellow-300">Caution</div>
           </div>
           <div
-            className={`p-2 text-center  rounded ${STYLES.border.success} bg-green-500/10 backdrop-blur-sm`}
+            className={`p-2 text-center  rounded ${Notification.border.success} bg-green-500/10 backdrop-blur-sm`}
           >
             <div className="text-lg font-bold text-green-400">
               {alertSummary.safe}
@@ -494,7 +535,13 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
     );
   };
 
-  const PortAlertCard = ({ alert }) => {
+  /**
+   * Render individual port alert card
+   * @param {Object} props.alert - Weather alert for a port
+   * @returns severity of each ports (if any)
+   */
+
+  const PortAlertCard = useCallback(({ alert }) => {
     const config = getSeverityConfig(alert.overallSeverity);
     return (
       <div
@@ -530,10 +577,14 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
         </div>
       </div>
     );
-  };
+  }, []);
+
+  // ===============================================
+  // UI RENDERING + IMPLEMENTED FUNCTIONS
+  // ===============================================
 
   return (
-    <div className="fixed top-48 right-28 z-[1000] w-80 backdrop-blur-xl rounded-2xl border-2 border-[#373737] shadow-xl transition-all duration-300 bg-[#1e1e1e]">
+    <div className="fixed top-4 right-4 sm:top-48 sm:right-28 z-[1000] w-[calc(100vw-2rem)] sm:w-80 backdrop-blur-xl rounded-2xl border-2 border-[#373737] shadow-xl transition-all duration-300 bg-[#1e1e1e] mx-auto">
       {/* Collapsed State */}
       {!isExpanded ? (
         <div
@@ -545,7 +596,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
         </div>
       ) : (
         /* Expanded State */
-        <div className="max-h-[70vh] flex flex-col">
+        <div className="max-h-[80vh] sm:max-h-[70vh] flex flex-col">
           {/* Header */}
           {renderExpandedHeader()}
 
@@ -553,7 +604,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
           <div className="flex-1 p-3 overflow-y-auto">
             {error ? (
               <div
-                className={`p-3 text-xs text-center text-red-400 border rounded ${STYLES.border.danger} bg-red-500/10 backdrop-blur-sm`}
+                className={`p-3 text-xs text-center text-red-400 border rounded ${Notification.border.danger} bg-red-500/10 backdrop-blur-sm`}
               >
                 {error}
               </div>
@@ -561,7 +612,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
               <>
                 {/* Tabs */}
                 <div
-                  className={`flex gap-1 p-1 mb-4 rounded-lg ${STYLES.bg.secondary} backdrop-blur-sm`}
+                  className={`flex gap-1 p-1 mb-4 rounded-lg ${Notification.bg.secondary} backdrop-blur-sm`}
                 >
                   {[
                     { id: "overview", label: "Overview", icon: MapPin },
@@ -583,6 +634,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
                         title={tab.label}
                       >
                         <Icon className="w-3.5 h-3.5" />
+                        <span className="hidden xs:inline">{tab.label}</span>
                       </button>
                     );
                   })}
