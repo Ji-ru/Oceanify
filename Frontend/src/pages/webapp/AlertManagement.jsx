@@ -1,37 +1,70 @@
 // src/pages/Admin/AlertMGMT.jsx
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/Navbar";
 import { createClient } from "@supabase/supabase-js";
 import API from "../../api";
-
+/**
+ * Initializes Supabase Client using evironment varibales
+ */
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-export default function AlertMGMT() {
-  const [alertMsg, setAlertMsg] = useState("");
+/**
+ * Allows admin to create, edit, delete, and auto generate alters.
+ * Syncs data between backend and database (Laravel API and Supabase).
+ * @returns lists of existing alert data
+ */
+export default function AlertManagementPage() {
+  // INITIALIZE STATE
+
+  // Alert Title Input State
   const [alertTitle, setAlertTitle] = useState(""); // New state for title
+
+  // Alert Message Input State
+  const [alertMsg, setAlertMsg] = useState("");
+
+  // List of All Alerts State
   const [alertList, setAlertList] = useState([]);
+
+  // Editing Alter ID (null if creating new)
   const [editingId, setEditingId] = useState(null);
+
+  // Theme Mode (Dark)
   const [theme, setTheme] = useState("dark");
+
+  // Loading Indicator for API Operations State
   const [loading, setLoading] = useState(false);
 
-  const predefinedMessages = [
+  // Predefined alert messages (memoized to prevent recreation on render)
+  const predefinedMessages = useMemo(() => [
     "⚠️ Strong winds detected: vessels advised to stay in port.",
     "🚨 Tropical storm warning: avoid sailing until further notice.",
     "🌊 Rough sea conditions expected. Exercise caution near coastal areas.",
     "🌧️ Heavy rainfall expected: visibility may be low at sea.",
     "🌀 Typhoon alert: monitor updates and follow safety protocols.",
-  ];
+  ]);
 
-  // 🔹 Load theme
+  // ===============================================
+  // THEME HANDLING
+  // ===============================================
+
+  /**
+   * Handles Theme (Dark Mode)
+   * Load and applu saved them on mount (renders in the component)
+   * This mount only once
+   */
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
     setTheme(savedTheme);
     document.documentElement.classList.toggle("dark", savedTheme === "dark");
   }, []);
 
+  /**
+   * Changes the theme by toggling between light and dark theme
+   * UNUSED Function Expression
+   */
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
@@ -39,68 +72,67 @@ export default function AlertMGMT() {
     localStorage.setItem("theme", newTheme);
   };
 
-  // 🔹 Load alerts from Laravel API
-  useEffect(() => {
-    const loadAlerts = async () => {
-      try {
-        const response = await fetch("http://localhost:8000/api/alerts", {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
+  // ===============================================
+  // DATA FETCHING
+  // ===============================================
 
-        if (response.ok) {
-          const data = await response.json();
-          setAlertList(data);
-        } else {
-          console.error("Failed to fetch alerts from Laravel");
-          // Fallback to Supabase if Laravel fails
-          const { data: supabaseData, error: supabaseError } = await supabase
-            .from("alerts")
-            .select("*")
-            .order("time", { ascending: false });
-          if (!supabaseError && supabaseData) setAlertList(supabaseData);
-        }
-      } catch (fetchError) {
-        console.error("Error fetching alerts:", fetchError);
-        // Fallback to Supabase
+  /**
+   * Loads alert data from Laravel API (with Supabase fallback if failed to fetch)
+   * Queries all the attributes in a data from the table ordered by time (ASC)
+   */
+  const loadAlerts = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/api/alerts", {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAlertList(data);
+      } else {
+        console.error("Failed to fetch alerts from Laravel");
+        // Fallback to Supabase if Laravel fails
         const { data: supabaseData, error: supabaseError } = await supabase
           .from("alerts")
           .select("*")
           .order("time", { ascending: false });
         if (!supabaseError && supabaseData) setAlertList(supabaseData);
       }
-    };
-    loadAlerts();
-  }, []);
+    } catch (fetchError) {
+      console.error("Error fetching alerts:", fetchError);
+      // Fallback to Supabase
+      const { data: supabaseData, error: supabaseError } = await supabase
+        .from("alerts")
+        .select("*")
+        .order("time", { ascending: false });
+      if (!supabaseError && supabaseData) setAlertList(supabaseData);
+    }
+  };
 
-  // 🔹 Auto Alert Generator (local) - Also posts to Laravel
+  /**
+   * Fetch alert data on first render
+   * Fetches alert data mutiple times if there's any changes or updates from editing or deletion of certain data
+   */
   useEffect(() => {
-    const interval = setInterval(() => {
-      const randomStormLevel = Math.floor(Math.random() * 10);
-      if (randomStormLevel > 7) {
-        const autoAlert = {
-          title: `Auto Alert: Storm Intensity ${randomStormLevel}`,
-          message: `⚠️ Auto Alert: Storm intensity ${randomStormLevel} detected at sea.`,
-          type: "auto",
-          time: new Date().toISOString(),
-        };
+    loadAlerts();
+  }, [loadAlerts]);
 
-        // Post to Laravel
-        postAlertToLaravel(autoAlert);
+  // ===============================================
+  // ALERT OPERATIONS
+  // ===============================================
 
-        // Update local state
-        setAlertList((prev) => [{ ...autoAlert, id: Date.now() }, ...prev]);
-      }
-    }, 20000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // 🔹 Post alert to Laravel backend
-  const postAlertToLaravel = async (alertData) => {
+  /**
+   * Used useCallback react hook to save function preventing recreating the function in memory every time the component re-render
+   * Post and alert to the Backend (Laravel API)
+   * Falls back to Supabase if fails to fetch (NO LINE OF CODE YET)
+   * @param {Object} alertData - alert object to send
+   */
+  const postAlertToLaravel = useCallback(async (alertData) => {
     try {
       const response = await fetch("http://localhost:8000/api/alerts", {
         method: "POST",
@@ -127,10 +159,14 @@ export default function AlertMGMT() {
       console.error("Error posting alert to Laravel:", postError);
       return null;
     }
-  };
+  }, []);
 
-  // 🔹 Send or update alert
-  const handleSendAlert = async () => {
+  /**
+   * Handles Creation or Update of Alerts
+   * Falls back to Supabase of Laravel API fails to create or update alert information
+   * @returns created and updated alert information set the by Admin.
+   */
+  const handleSendAlert = useCallback(async () => {
     if (!alertMsg.trim() || !alertTitle.trim()) {
       alert("Please provide both title and message");
       return;
@@ -139,99 +175,109 @@ export default function AlertMGMT() {
     setLoading(true);
     const now = new Date().toISOString();
 
-    if (editingId) {
-      // Update existing alert
-      const updatedAlert = {
-        title: alertTitle,
-        message: alertMsg,
-        time: now,
-      };
-
-      try {
-        // Update in Laravel via axios API client
-        const response = await API.put("/alerts", updatedAlert);
-
-        if (response.status >= 200 && response.status < 300) {
-          setAlertList((prev) =>
-            prev.map((a) =>
-              a.id === editingId ? { ...a, ...updatedAlert } : a
-            )
-          );
-        } else {
-          // Fallback to Supabase
-          const { error: updateError } = await supabase
-            .from("alerts")
-            .update(updatedAlert)
-            .eq("id", editingId);
-          if (!updateError) {
-            setAlertList((prev) =>
-              prev.map((a) =>
-                a.id === editingId ? { ...a, ...updatedAlert } : a
-              )
-            );
-          }
-        }
-      } catch (updateError) {
-        console.error("Error updating alert:", updateError);
-      }
-
-      setEditingId(null);
-      setAlertTitle("");
-      setAlertMsg("");
-      setLoading(false);
-      return;
-    }
-
-    // Insert new alert
-    const newAlert = {
+    // Prepare alert object
+    const alertData = {
       title: alertTitle,
       message: alertMsg,
-      type: "custom",
       time: now,
+      type: editingId ? undefined : "custom", // type only for new alerts
     };
 
     try {
-      // First try to post to Laravel
-      const laravelResult = await postAlertToLaravel(newAlert);
+      if (editingId) {
+        // ---------------------------
+        // UPDATE EXISTING ALERT
+        // ---------------------------
+        let updatedAlert = null;
 
-      if (laravelResult) {
-        // Use the response from Laravel which includes the ID
-        setAlertList((prev) => [laravelResult, ...prev]);
-      } else {
-        // Fallback to Supabase
-        const { data: supabaseData, error: supabaseError } = await supabase
-          .from("alerts")
-          .insert([newAlert])
-          .select();
-
-        if (supabaseError) {
-          console.error("Failed to insert alert:", supabaseError);
-          // Final fallback to local state
-          setAlertList((prev) => [{ ...newAlert, id: Date.now() }, ...prev]);
-        } else {
-          setAlertList((prev) => [supabaseData[0], ...prev]);
+        try {
+          // Try Laravel first
+          const response = await API.put(`/alerts/${editingId}`, alertData);
+          if (response.status >= 200 && response.status < 300) {
+            updatedAlert = { ...alertData, id: editingId };
+          } else {
+            // Fallback to Supabase
+            const { error } = await supabase
+              .from("alerts")
+              .update(alertData)
+              .eq("id", editingId);
+            if (!error) {
+              updatedAlert = { ...alertData, id: editingId };
+            }
+          }
+        } catch (updateError) {
+          console.error("Error updating alert:", updateError);
+          // Final fallback to Supabase
+          const { error } = await supabase
+            .from("alerts")
+            .update(alertData)
+            .eq("id", editingId);
+          if (!error) updatedAlert = { ...alertData, id: editingId };
         }
+
+        if (updatedAlert) {
+          setAlertList((prev) =>
+            prev.map((a) => (a.id === editingId ? updatedAlert : a))
+          );
+        }
+
+        setEditingId(null); // Clear editing state
+      } else {
+        // ---------------------------
+        // CREATE NEW ALERT
+        // ---------------------------
+        let newAlertResult = null;
+
+        const laravelResult = await postAlertToLaravel(alertData);
+        if (laravelResult) {
+          newAlertResult = laravelResult;
+        } else {
+          const { data: supabaseData, error } = await supabase
+            .from("alerts")
+            .insert([alertData])
+            .select();
+          if (!error && supabaseData?.length > 0) {
+            newAlertResult = supabaseData[0];
+          } else {
+            // Final fallback to local state
+            newAlertResult = { ...alertData, id: Date.now() };
+          }
+        }
+
+        setAlertList((prev) => [newAlertResult, ...prev]);
       }
-    } catch (createError) {
-      console.error("Error creating alert:", createError);
-      // Fallback to local state
-      setAlertList((prev) => [{ ...newAlert, id: Date.now() }, ...prev]);
+    } catch (error) {
+      console.error("Error creating/updating alert:", error);
+    } finally {
+      // Reset form & loading
+      setAlertTitle("");
+      setAlertMsg("");
+      setLoading(false);
     }
 
-    setAlertTitle("");
-    setAlertMsg("");
-    setLoading(false);
-  };
+    /**
+     * Below are the dependencies, which checks whenever changes have been done between renders
+     * @returns same function (cached one) if no changes, else creates new version of function replacing the old one (cached it)
+     */
+  }, [alertTitle, alertMsg, editingId, postAlertToLaravel]);
 
-  // 🔹 Edit existing alert
-  const handleEditAlert = (alert) => {
+  /**
+   * Selects the data for editing by populating the form
+   * This will be passed on to the handleSendAlert function
+   * @param {Object} alert - The alert data to be edited
+   */
+  const handleEditAlert = useCallback((alert) => {
     setAlertTitle(alert.title || "");
-    setAlertMsg(alert.message);
+    setAlertMsg(alert.message || "");
     setEditingId(alert.id);
-  };
+  }, []);
 
-  // 🔹 Delete alert
-  const handleDeleteAlert = async (id) => {
+  /**
+   * Delete the selected alert information
+   * Fallback to Supabase if Laravel API fails to change the information
+   * @param {number} id - ID of the selected Alert Information
+   */
+  const handleDeleteAlert = useCallback(async (id) => {
     try {
       // Try to delete from Laravel first
       const response = await API.put("/alerts", updatedAlert);
@@ -250,16 +296,12 @@ export default function AlertMGMT() {
       }
     } catch (deleteError) {
       console.error("Error deleting alert:", deleteError);
-      // Fallback to Supabase
-      const { error: supabaseError } = await supabase
-        .from("alerts")
-        .delete()
-        .eq("id", id);
-      if (!supabaseError) {
-        setAlertList((prev) => prev.filter((a) => a.id !== id));
-      }
     }
-  };
+  });
+
+  // ===============================================
+  // UI RENDERING + IMPLEMENTED FUNCTIONS
+  // ===============================================
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">

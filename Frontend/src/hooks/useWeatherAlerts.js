@@ -214,6 +214,7 @@ export const useWeatherAlerts = (options = {}) => {
     lastUpdate,
 
     // Actions
+    getUserLocation,
     refreshAlerts,
     getAlertsBySeverity,
     getAlertForLocation,

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Alert;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Services\SupabaseService;
 
 class AlertController extends Controller
 {
@@ -20,6 +21,7 @@ class AlertController extends Controller
             return response()->json(['error' => 'Failed to fetch alerts'], 500);
         }
     }
+
 
     /**
      * Store a newly created resource in storage.

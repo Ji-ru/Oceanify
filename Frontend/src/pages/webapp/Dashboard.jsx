@@ -8,10 +8,12 @@ import mindanaoPorts from "../../data/ports.json";
 import supabase from "../../supabaseClient";
 import API from "../../api";
 // Weather hook (provides cached fetch)
-import { useWeatherData } from "../../hooks/useWeatherData";
+import { useWeatherData } from "../../hooks/useWeatherForecastingData";
 //Icons
 import { Waves, Compass, Clock, ArrowUpDown, Droplet } from "lucide-react";
 import { Droplets, Cloud, Gauge, Eye, Sun, Moon } from "lucide-react";
+
+import { useFormattedCoordinates, useFormattedCoordinates } from "../../hooks/useFormattedCoords";
 
 /**
  * Marine Dashboard - Main weather and safety monitoring interface
@@ -35,6 +37,8 @@ export default function DashboardPage() {
 
   const { fetchLocationData } = useWeatherData();
 
+  const { formattedCoords } = useFormattedCoordinates(userLocation);
+
   // Helper: load weather and waves via cached hook
   const loadByCoords = async (lat, lng, opts = { setGlobalLoading: false }) => {
     try {
@@ -52,35 +56,35 @@ export default function DashboardPage() {
       if (opts.setGlobalLoading) setLoading(false);
     }
   };
+  
+      const getUserLocation = () => {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            setUserLocation({ latitude, longitude });
+            await loadByCoords(latitude, longitude, { setGlobalLoading: true });
+          },
+          async (err) => {
+            console.warn("Geolocation error:", err);
+            setError("Location access denied. Using default location.");
+            const defaultLat = 7.0667;
+            const defaultLng = 125.6333;
+            setUserLocation({ latitude: defaultLat, longitude: defaultLng });
+            try {
+              await loadByCoords(defaultLat, defaultLng, {
+                setGlobalLoading: true,
+              });
+            } catch {
+              // setDemoData();
+            }
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      };
 
   // Get user location
   useEffect(() => {
     const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
-
-    const getUserLocation = () => {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ latitude, longitude });
-          await loadByCoords(latitude, longitude, { setGlobalLoading: true });
-        },
-        async (err) => {
-          console.warn("Geolocation error:", err);
-          setError("Location access denied. Using default location.");
-          const defaultLat = 7.0667;
-          const defaultLng = 125.6333;
-          setUserLocation({ latitude: defaultLat, longitude: defaultLng });
-          try {
-            await loadByCoords(defaultLat, defaultLng, {
-              setGlobalLoading: true,
-            });
-          } catch {
-            // setDemoData();
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    };
 
     // Check cached data FIRST
     const cachedLocation = JSON.parse(localStorage.getItem("cachedLocation"));
@@ -278,7 +282,6 @@ export default function DashboardPage() {
   };
 
   // Add these helper functions before getSafetyIndex()
-
   const getBeaufortScale = (windSpeed) => {
     if (windSpeed <= 1) return { score: 100, level: "Calm" };
     if (windSpeed <= 5) return { score: 90, level: "Light Air" };
@@ -463,9 +466,7 @@ export default function DashboardPage() {
                 {selectedPort
                   ? `Viewing: ${selectedPort.port_name}`
                   : userLocation
-                  ? `Current Position: ${userLocation.latitude.toFixed(
-                      4
-                    )}°N, ${userLocation.longitude.toFixed(4)}°E`
+                  ? `Current Position: ${formattedCoords}`
                   : "Location: Unknown"}
               </p>
             </div>

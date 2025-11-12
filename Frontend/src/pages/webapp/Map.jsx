@@ -1,16 +1,11 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMapInitialization } from "../../hooks/useMapInitialization";
-import { useWeatherData } from "../../hooks/useWeatherData";
+import { useWeatherData } from "../../hooks/useWeatherForecastingData";
 import { useRescueFlow } from "../../hooks/useRescueFlow";
 import { useAlerts } from "../../hooks/useAlerts";
 import { usePortMarkers } from "../../hooks/usePortMarkers";
 import { createWeatherPopup, createWavePopup } from "../../utils/mapUtils";
-import {
-  formatValue,
-  degToCompass,
-  getWeatherDescription,
-} from "../../utils/weatherUtils";
 import ControlPanel from "../../components/MapComponents/ControlPanel";
 import AlertsPanel from "../../components/MapComponents/AlertsPanel";
 import ForecastPanel from "../../components/MapComponents/ForecastPanel";
@@ -24,7 +19,6 @@ import WeatherNotificationPanel from "../../components/MapComponents/WeatherNoti
 export default function Maps() {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
-  const warningMarkersRef = useRef([]);
 
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showTemperature, setShowTemperature] = useState(true);
@@ -35,6 +29,7 @@ export default function Maps() {
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
   const [showWeatherNotification, setShowWeatherNotification] = useState(false); // Add this state
   const [activePanel, setActivePanel] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
 
   const navigate = useNavigate();
 
@@ -57,10 +52,10 @@ export default function Maps() {
   useMapInitialization(
     mapRef,
     markerRef,
-    warningMarkersRef,
     setMapLoaded,
     setShowForecastPanel,
-    rescueFlow.requestRescueAt
+    rescueFlow.requestRescueAt,
+    userLocation
   );
 
   // Handle panel visibility
@@ -298,6 +293,18 @@ export default function Maps() {
     setShowAlertsPanel(true);
   };
 
+  //Handle forecast panel close - return to user location
+  const handleForecastPanelClose = () => {
+    setShowForecastPanel(false);
+    
+    // Reset to user location if available
+    if (userLocation) {
+      setCurrentLocation(userLocation);
+      rescueFlow.setSelectedLat(null);
+      rescueFlow.setSelectedLng(null);
+    }
+  };
+
   const selectedLocation =
     rescueFlow.selectedLat !== null
       ? {
@@ -314,7 +321,7 @@ export default function Maps() {
 
       {/* Weather Notification Panel - Conditionally render */}
       {showWeatherNotification && (
-        <WeatherNotificationPanel onShowAlerts={handleShowAlerts} />
+        <WeatherNotificationPanel onShowAlerts={() => handleShowAlerts()} />
       )}
 
       {/* Map */}
@@ -371,7 +378,7 @@ export default function Maps() {
       {/* Forecast Panel - Positioned on left */}
       <ForecastPanel
         visible={showForecastPanel}
-        onClose={() => setShowForecastPanel(false)}
+        onClose={handleForecastPanelClose}
         forecastData={forecastData}
         currentLocation={currentLocation}
         selectedLocation={selectedLocation}

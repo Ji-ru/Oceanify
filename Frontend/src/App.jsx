@@ -14,7 +14,7 @@ import SignIn from "./pages/webapp/SignIn";
 import SignUp from "./pages/webapp/SignUp";
 import AccountManagement from "./pages/webapp/AccountManagement";
 import Map from "./pages/webapp/Map";
-import RescueManagement from "./pages/webapp/RescueManagement"; // ← ADD THIS
+import RescueManagement from "./pages/webapp/RescueManagement";
 import AlertManagement from "./pages/webapp/AlertManagement";
 import Dashboard from "./pages/webapp/Dashboard";
 import Profile from "./pages/webapp/Profile";
