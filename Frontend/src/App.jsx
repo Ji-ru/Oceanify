@@ -14,13 +14,13 @@ import SignIn from "./pages/webapp/SignIn";
 import SignUp from "./pages/webapp/SignUp";
 import AccountManagement from "./pages/webapp/AccountManagement";
 import Map from "./pages/webapp/Map";
-import RescueManagement from "./pages/webapp/RescueManagement"; // ← ADD THIS
+import RescueManagement from "./pages/webapp/RescueManagement"; 
 import AlertManagement from "./pages/webapp/AlertManagement";
 import Dashboard from "./pages/webapp/Dashboard";
 import Profile from "./pages/webapp/Profile";
 import RescueButton from "./components/RescueButton";
 import LandingPage from "./pages/weblanding/LandingPage";
-import ActivityLogs from "./components/ActivityLogs";
+import ActivityLogs from "./pages/webapp/ActivityLogs";
 
 function App() {
   return (
@@ -111,7 +111,14 @@ function App() {
           ----------------------------- */}
           <Route path="*" element={<SignIn />} />
 
-          <Route path="/activity-logs" element={<ActivityLogs />} />
+          <Route
+            path="/activity-logs"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <ActivityLogs />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </AccountProvider>
     </AuthProvider>

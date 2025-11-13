@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import apiClient from '../utils/apiClient';
-import Navbar from '../components/Navbar';
+import apiClient from '../../utils/apiClient';
+import Navbar from '../../components/Navbar';
 
 const ActivityLogs = () => {
   const [logs, setLogs] = useState([]);
