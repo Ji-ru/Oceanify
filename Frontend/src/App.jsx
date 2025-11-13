@@ -20,6 +20,7 @@ import Dashboard from "./pages/webapp/Dashboard";
 import Profile from "./pages/webapp/Profile";
 import RescueButton from "./components/RescueButton";
 import LandingPage from "./pages/weblanding/LandingPage";
+import ActivityLogs from "./components/ActivityLogs";
 
 function App() {
   return (
@@ -109,6 +110,8 @@ function App() {
               Redirect unknown paths to SignIn
           ----------------------------- */}
           <Route path="*" element={<SignIn />} />
+
+          <Route path="/activity-logs" element={<ActivityLogs />} />
         </Routes>
       </AccountProvider>
     </AuthProvider>

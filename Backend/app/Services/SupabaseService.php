@@ -57,17 +57,19 @@ class SupabaseService
     {
         $order = $ascending ? 'asc' : 'desc';
         $url = "{$this->url}{$this->table}?order={$orderBy}.{$order}";
+
         $response = $this->client()->get($url);
 
         if ($response->failed()) {
-            info('❌ Supabase request failed');
-            info('URL: ' . $url);
+            info('⚠️ Supabase getAll failed');
             info('Status: ' . $response->status());
-            info('Body: ' . $response->body());
+            info('URL: ' . $url);
+            info('Response: ' . $response->body());
+
             return ['error' => 'Failed to fetch data', 'status' => $response->status()];
         }
 
-        info('✅ Supabase request succeeded');
+        info('✅ Supabase fetch successful for: ' . $url);
         return $response->json();
     }
 
