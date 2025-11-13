@@ -1,8 +1,7 @@
 import axios from "axios";
 import supabase from "./supabaseClient";
 
-// Prefer environment variable; fallback to same-origin "/api" when deployed behind a reverse proxy
-// For Vite, define VITE_API_BASE_URL in your .env files
+
 const baseURL = (import.meta?.env?.VITE_API_BASE_URL || "").trim() || `${window.location.origin}/api`;
 
 const API = axios.create({
@@ -11,7 +10,7 @@ const API = axios.create({
 
 console.log("Base URL:", import.meta.env.VITE_API_BASE_URL);
 
-// ✅ Add request interceptor to include user info in headers
+
 API.interceptors.request.use(
   async (config) => {
     try {
@@ -29,10 +28,10 @@ API.interceptors.request.use(
           userEmail: session.user.email
         });
       } else {
-        console.log('⚠️ API.js No session found');
+        console.log('API.js No session found');
       }
     } catch (error) {
-      console.error('❌ API.js Error getting session:', error);
+      console.error('API.js Error getting session:', error);
     }
     
     return config;

@@ -90,8 +90,11 @@ const Navbar = () => {
               </Link>
             )}
 
+            {isAdmin && (
             <Link to="/activity-logs" className="font-medium text-white duration-300 text-decoration-none hover:text-white/80"
             >Activity Logs</Link> 
+            )}
+
 
             {/* Maps */}
             <Link
