@@ -9,9 +9,22 @@ import supabase from "../../supabaseClient";
 import API from "../../api";
 // Weather hook (provides cached fetch)
 import { useWeatherData } from "../../hooks/useWeatherForecastingData";
-//Icons
-// import { Waves, Compass, Clock, ArrowUpDown, Droplet } from "lucide-react";
-// import { Droplets, Cloud, Gauge, Eye, Sun, Moon } from "lucide-react";
+// Lucid React Icons
+import { 
+  Thermometer, 
+  Wind, 
+  Waves, 
+  Compass, 
+  Droplets, 
+  Cloud, 
+  Gauge, 
+  Eye, 
+  Sun, 
+  Moon,
+  AlertTriangle,
+  Bell,
+  MapPin
+} from "lucide-react";
 
 // Coordinate Formatter
 import { useFormattedCoordinates } from "../../hooks/useFormattedCoords";
@@ -489,7 +502,7 @@ export default function DashboardPage() {
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="relative p-2 text-white"
               >
-                <i className="text-lg bi bi-bell-fill"></i>
+                <Bell className="w-5 h-5" />
                 {rescueNotifications.filter((n) => n.status === "pending")
                   .length > 0 && (
                   <span className="absolute flex items-center justify-center w-4 h-4 text-xs text-white bg-red-500 rounded-full -top-1 -right-1">
@@ -505,7 +518,8 @@ export default function DashboardPage() {
 
           {error && (
             <div className="px-4 py-2 mt-4 text-sm text-yellow-400 rounded-lg bg-yellow-900/20">
-              ⚠️ {error}
+              <AlertTriangle className="inline w-4 h-4 mr-1" />
+              {error}
             </div>
           )}
         </div>
@@ -548,7 +562,8 @@ export default function DashboardPage() {
                       Emergency Rescue
                     </div>
                     <div className="text-sm text-gray-300">
-                      📍 {notification.latitude?.toFixed(4)}°N,{" "}
+                      <MapPin className="inline w-3 h-3 mr-1" />
+                      {notification.latitude?.toFixed(4)}°N,{" "}
                       {notification.longitude?.toFixed(4)}°E
                     </div>
                     <div className="text-xs text-gray-400">
@@ -569,7 +584,7 @@ export default function DashboardPage() {
               {/* Temperature Card */}
               <div className="p-6 bg-[#1e1e1e] rounded-xl">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="text-3xl">🌡️</div>
+                  <Thermometer className="w-8 h-8 text-red-400" />
                   <div>
                     <h3 className="font-bold text-white">Temperature</h3>
                     <p className="text-2xl font-bold text-white">
@@ -587,7 +602,7 @@ export default function DashboardPage() {
               {/* Wind Speed Card */}
               <div className="p-6 bg-[#1e1e1e] rounded-xl">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="text-3xl">💨</div>
+                  <Wind className="w-8 h-8 text-blue-400" />
                   <div>
                     <h3 className="font-bold text-white">Wind Speed</h3>
                     <p className="text-2xl font-bold text-white">
@@ -604,7 +619,8 @@ export default function DashboardPage() {
 
               {/* Wave Conditions */}
               <div className="p-6 bg-[#1e1e1e] rounded-xl md:col-span-2">
-                <h3 className="mb-4 text-lg font-bold text-white">
+                <h3 className="flex items-center gap-2 mb-4 text-lg font-bold text-white">
+                  <Waves className="w-5 h-5 text-cyan-400" />
                   Wave Conditions
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -620,6 +636,7 @@ export default function DashboardPage() {
                     {
                       label: "Primary Swell Direction",
                       value: degToCompass(waveData?.current?.wave_direction),
+                      icon: <Compass className="w-4 h-4" />
                     },
                     {
                       label: "Secondary Swell Height",
@@ -639,7 +656,10 @@ export default function DashboardPage() {
                     },
                   ].map((item, index) => (
                     <div key={index} className="p-3 rounded-lg bg-[#272727]">
-                      <div className="text-sm text-gray-400">{item.label}</div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        {item.icon}
+                        {item.label}
+                      </div>
                       <div className="text-lg font-semibold text-white">
                         {item.value}
                       </div>
@@ -662,7 +682,7 @@ export default function DashboardPage() {
                         "%",
                         0
                       ),
-                      icon: "💧",
+                      icon: <Droplets className="w-4 h-4 text-blue-300" />,
                     },
                     {
                       label: "Cloud Cover",
@@ -671,7 +691,7 @@ export default function DashboardPage() {
                         "%",
                         0
                       ),
-                      icon: "☁️",
+                      icon: <Cloud className="w-4 h-4 text-gray-300" />,
                     },
                     {
                       label: "Pressure",
@@ -680,7 +700,7 @@ export default function DashboardPage() {
                         " hPa",
                         0
                       ),
-                      icon: "📊",
+                      icon: <Gauge className="w-4 h-4 text-purple-300" />,
                     },
                     {
                       label: "Visibility",
@@ -688,17 +708,21 @@ export default function DashboardPage() {
                         weatherData?.current?.weather_code <= 3
                           ? "Good"
                           : "Reduced",
-                      icon: "👁️",
+                      icon: <Eye className="w-4 h-4 text-green-300" />,
                     },
                     {
                       label: "Day/Night",
                       value: weatherData?.current?.is_day ? "Day" : "Night",
-                      icon: weatherData?.current?.is_day ? "☀️" : "🌙",
+                      icon: weatherData?.current?.is_day ? (
+                        <Sun className="w-4 h-4 text-yellow-400" />
+                      ) : (
+                        <Moon className="w-4 h-4 text-indigo-300" />
+                      ),
                     },
                   ].map((item, index) => (
                     <div key={index} className="p-3 rounded-lg bg-[#272727]">
                       <div className="flex items-center gap-2 mb-1">
-                        <span>{item.icon}</span>
+                        {item.icon}
                         <div className="text-sm text-gray-400">
                           {item.label}
                         </div>
@@ -718,7 +742,10 @@ export default function DashboardPage() {
             {/* Marine Alerts */}
             <div className="p-6 bg-[#1e1e1e] rounded-xl">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white">Marine Alerts</h3>
+                <h3 className="flex items-center gap-2 text-lg font-bold text-white">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                  Marine Alerts
+                </h3>
                 <span className="px-2 py-1 text-xs text-white bg-red-500 rounded">
                   {adminAlerts.length} Active
                 </span>
@@ -746,7 +773,8 @@ export default function DashboardPage() {
             {/* Rescue Requests */}
             <div className="p-6 bg-[#1e1e1e] rounded-xl">
               <div className="mb-4">
-                <h3 className="text-lg font-bold text-white">
+                <h3 className="flex items-center gap-2 text-lg font-bold text-white">
+                  <AlertTriangle className="w-5 h-5 text-orange-400" />
                   Rescue Requests
                 </h3>
                 <div className="flex gap-4 mt-2">
@@ -776,6 +804,7 @@ export default function DashboardPage() {
                           .toUpperCase() || "EMERGENCY"}
                       </div>
                       <div className="text-xs text-gray-300">
+                        <MapPin className="inline w-3 h-3 mr-1" />
                         {request.latitude?.toFixed(2)}°N,{" "}
                         {request.longitude?.toFixed(2)}°E
                       </div>
@@ -794,7 +823,8 @@ export default function DashboardPage() {
 
             {/* Safety Index */}
             <div className="p-6 bg-[#1e1e1e] rounded-xl">
-              <h3 className="mb-4 text-lg font-bold text-white">
+              <h3 className="flex items-center gap-2 mb-4 text-lg font-bold text-white">
+                <Gauge className="w-5 h-5 text-green-400" />
                 Safety Index
               </h3>
               <div className="text-center">
@@ -820,8 +850,8 @@ export default function DashboardPage() {
                         : "bg-green-900/30 text-green-200 border border-green-700/40"
                     }`}
                   >
-                    {advisory.severity === "danger" && "⚠️ "}
-                    {advisory.severity === "caution" && "⚠️ "}
+                    {advisory.severity === "danger" && <AlertTriangle className="inline w-3 h-3 mr-1" />}
+                    {advisory.severity === "caution" && <AlertTriangle className="inline w-3 h-3 mr-1" />}
                     {advisory.severity === "ok" && "✅ "}
                     {advisory.message}
                   </div>

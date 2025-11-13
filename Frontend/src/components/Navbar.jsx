@@ -7,6 +7,8 @@ import Logo from "../assets/images/oceanify.png";
 import AvatarImg from "../assets/images/default_profile.jpg";
 // Auth
 import { useAuth } from "../contexts/AuthContext";
+// Lucide Icons
+import { AlertTriangle, Users, MapPin, Activity, Home, LifeBuoy } from "lucide-react";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,13 +31,13 @@ const Navbar = () => {
     admin: {
       className:
         "relative inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white duration-300 border-2 border-red-500 rounded-lg hover:bg-red-500 text-decoration-none",
-      icon: "🚨",
+      icon: <LifeBuoy className="w-4 h-4" />,
       text: "Rescue Management",
     },
     user: {
       className:
         "relative inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg bg-red-600 hover:bg-red-700 active:scale-[0.98] transition-all shadow-md hover:shadow-lg",
-      icon: "🆘",
+      icon: <LifeBuoy className="w-4 h-4" />,
       text: "Emergency Rescue",
     },
   };
@@ -65,18 +67,18 @@ const Navbar = () => {
             {/* Dashboard */}
             <Link
               to="/dashboard"
-              className="font-medium text-white duration-300 text-decoration-none hover:text-white/80"
+              className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
             >
-              Dashboard
+              <Home className="w-4 h-4" /> Dashboard
             </Link>
 
             {/* Users - Admin Only */}
             {isAdmin && (
               <Link
                 to="/accounts-management"
-                className="font-medium text-white duration-300 text-decoration-none hover:text-white/80"
+                className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
               >
-                Users
+                <Users className="w-4 h-4" /> Users
               </Link>
             )}
 
@@ -84,21 +86,25 @@ const Navbar = () => {
             {isAdmin && (
               <Link
                 to="/alerts-management"
-                className="font-medium text-white duration-300 text-decoration-none hover:text-white/80"
+                className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
               >
-                Alerts
+                <AlertTriangle className="w-4 h-4" /> Alerts
               </Link>
             )}
 
-            <Link to="/activity-logs" className="font-medium text-white duration-300 text-decoration-none hover:text-white/80"
-            >Activity Logs</Link> 
+            <Link
+              to="/activity-logs"
+              className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
+            >
+              <Activity className="w-4 h-4" /> Activity Logs
+            </Link>
 
             {/* Maps */}
             <Link
               to="/map"
-              className="font-medium text-white duration-300 text-decoration-none hover:text-white/80"
+              className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
             >
-              Maps
+              <MapPin className="w-4 h-4" /> Maps
             </Link>
           </div>
 
@@ -109,7 +115,7 @@ const Navbar = () => {
               className={currentRescueStyle.className}
               aria-label={currentRescueStyle.text}
             >
-              <span className="text-lg">{currentRescueStyle.icon}</span>
+              {currentRescueStyle.icon}
               <span>{currentRescueStyle.text}</span>
             </Link>
           </div>
@@ -203,9 +209,7 @@ const Navbar = () => {
                 : "border-2 border-red-500 hover:bg-red-500 duration-300"
             }`}
           >
-            <span className="text-xl transition-transform duration-300 group-hover:scale-110">
-              {currentRescueStyle.icon}
-            </span>
+            <LifeBuoy className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
             <div className="flex flex-col">
               <span className="text-base font-black text-decoration-none">
                 {isAdmin ? "Rescue Management" : "Rescue Management"}
@@ -219,37 +223,37 @@ const Navbar = () => {
           {/* Regular Navigation Links */}
           <Link
             to="/dashboard"
-            className="block py-2 text-white text-decoration-none"
+            className="block py-2 text-white text-decoration-none flex items-center gap-1"
             onClick={() => setIsOpen(false)}
           >
-            Dashboard
+            <Home className="w-4 h-4" /> Dashboard
           </Link>
 
           {isAdmin && (
             <Link
               to="/accounts-management"
-              className="block py-2 text-white text-decoration-none"
+              className="block py-2 text-white text-decoration-none flex items-center gap-1"
               onClick={() => setIsOpen(false)}
             >
-              Users
+              <Users className="w-4 h-4" /> Users
             </Link>
           )}
 
           <Link
             to="/map"
-            className="block py-2 text-white text-decoration-none"
+            className="block py-2 text-white text-decoration-none flex items-center gap-1"
             onClick={() => setIsOpen(false)}
           >
-            Maps
+            <MapPin className="w-4 h-4" /> Maps
           </Link>
 
           {isAdmin && (
             <Link
               to="/alerts-management"
-              className="block py-2 text-white text-decoration-none"
+              className="block py-2 text-white text-decoration-none flex items-center gap-1"
               onClick={() => setIsOpen(false)}
             >
-              Alerts
+              <AlertTriangle className="w-4 h-4" /> Alerts
             </Link>
           )}
 
