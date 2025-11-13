@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use \Illuminate\Http\Client\PendingRequest;
 
 class SupabaseService
 {

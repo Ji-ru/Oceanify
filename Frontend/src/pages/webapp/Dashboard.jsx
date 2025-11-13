@@ -10,10 +10,14 @@ import API from "../../api";
 // Weather hook (provides cached fetch)
 import { useWeatherData } from "../../hooks/useWeatherForecastingData";
 //Icons
-import { Waves, Compass, Clock, ArrowUpDown, Droplet } from "lucide-react";
-import { Droplets, Cloud, Gauge, Eye, Sun, Moon } from "lucide-react";
+// import { Waves, Compass, Clock, ArrowUpDown, Droplet } from "lucide-react";
+// import { Droplets, Cloud, Gauge, Eye, Sun, Moon } from "lucide-react";
 
-import { useFormattedCoordinates, useFormattedCoordinates } from "../../hooks/useFormattedCoords";
+// Coordinate Formatter
+import { useFormattedCoordinates } from "../../hooks/useFormattedCoords";
+
+// Caching in Local Storage
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 
 /**
  * Marine Dashboard - Main weather and safety monitoring interface
@@ -21,9 +25,13 @@ import { useFormattedCoordinates, useFormattedCoordinates } from "../../hooks/us
  */
 
 export default function DashboardPage() {
-  const [userLocation, setUserLocation] = useState(null);
-  const [weatherData, setWeatherData] = useState(null);
-  const [waveData, setWaveData] = useState(null);
+  const [userLocation, setUserLocation] = useLocalStorage(
+    "cachedLocation",
+    null
+  );
+  const [weatherData, setWeatherData] = useLocalStorage("cachedWeather", null);
+  const [waveData, setWaveData] = useLocalStorage("cachedWave", null);
+  const [cacheTime, setCacheTime] = useLocalStorage("cacheTime", null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPort, setSelectedPort] = useState(null);
@@ -56,75 +64,51 @@ export default function DashboardPage() {
       if (opts.setGlobalLoading) setLoading(false);
     }
   };
-  
-      const getUserLocation = () => {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-            setUserLocation({ latitude, longitude });
-            await loadByCoords(latitude, longitude, { setGlobalLoading: true });
-          },
-          async (err) => {
-            console.warn("Geolocation error:", err);
-            setError("Location access denied. Using default location.");
-            const defaultLat = 7.0667;
-            const defaultLng = 125.6333;
-            setUserLocation({ latitude: defaultLat, longitude: defaultLng });
-            try {
-              await loadByCoords(defaultLat, defaultLng, {
-                setGlobalLoading: true,
-              });
-            } catch {
-              // setDemoData();
-            }
-          },
-          { enableHighAccuracy: true, timeout: 10000 }
-        );
-      };
 
-  // Get user location
+  const getUserLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        await loadByCoords(latitude, longitude, { setGlobalLoading: true });
+      },
+      async (err) => {
+        console.warn("Geolocation error:", err);
+        setError("Location access denied. Using default location.");
+        const defaultLat = 7.0667;
+        const defaultLng = 125.6333;
+        setUserLocation({ lat: defaultLat, lng: defaultLng });
+        try {
+          await loadByCoords(defaultLat, defaultLng, {
+            setGlobalLoading: true,
+          });
+        } catch {
+          // setDemoData();
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   useEffect(() => {
     const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+    const isExpired = cacheTime && Date.now() - cacheTime > CACHE_DURATION;
 
-    // Check cached data FIRST
-    const cachedLocation = JSON.parse(localStorage.getItem("cachedLocation"));
-    const cachedWeather = JSON.parse(localStorage.getItem("cachedWeather"));
-    const cachedWave = JSON.parse(localStorage.getItem("cachedWave"));
-    const cacheTime = localStorage.getItem("cacheTime");
-
-    if (cachedLocation && cachedWeather && cachedWave && cacheTime) {
-      const isExpired = Date.now() - cacheTime > CACHE_DURATION;
-
-      if (!isExpired) {
-        setUserLocation(cachedLocation);
-        setWeatherData(cachedWeather);
-        setWaveData(cachedWave);
-        setLoading(false);
-        return; // Stop here if using cache
-      }
+    if (userLocation && weatherData && waveData && !isExpired) {
+      setLoading(false);
+      return; // Cache is valid — use it
     }
 
-    // If no valid cache → get location
+    // If cache missing or expired → refresh location and weather
     getUserLocation();
   }, []);
 
-  // Fetch notifications (legacy local) - kept for header dropdown
+  // Whenever data changes, update cache time
   useEffect(() => {
-    const fetchNotifications = () => {
-      try {
-        const notifications = JSON.parse(
-          localStorage.getItem("rescueNotifications") || "[]"
-        );
-        setRescueNotifications(notifications);
-      } catch (err) {
-        console.error("Error fetching notifications", err);
-      }
-    };
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    if (userLocation && weatherData && waveData) {
+      setCacheTime(Date.now());
+    }
+  }, [userLocation, weatherData, waveData]);
 
   // Load rescue requests from Supabase with realtime like AdminRescueManagement
   useEffect(() => {
