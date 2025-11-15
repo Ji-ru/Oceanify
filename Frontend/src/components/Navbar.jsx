@@ -8,7 +8,14 @@ import AvatarImg from "../assets/images/default_profile.jpg";
 // Auth
 import { useAuth } from "../contexts/AuthContext";
 // Lucide Icons
-import { AlertTriangle, Users, MapPin, Activity, Home, LifeBuoy } from "lucide-react";
+import {
+  AlertTriangle,
+  Users,
+  MapPin,
+  Activity,
+  Home,
+  LifeBuoy,
+} from "lucide-react";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -67,7 +74,7 @@ const Navbar = () => {
             {/* Dashboard */}
             <Link
               to="/dashboard"
-              className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
+              className="flex items-center gap-1 font-medium text-white duration-300 text-decoration-none hover:text-white/80"
             >
               <Home className="w-4 h-4" /> Dashboard
             </Link>
@@ -76,7 +83,7 @@ const Navbar = () => {
             {isAdmin && (
               <Link
                 to="/accounts-management"
-                className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
+                className="flex items-center gap-1 font-medium text-white duration-300 text-decoration-none hover:text-white/80"
               >
                 <Users className="w-4 h-4" /> Users
               </Link>
@@ -86,7 +93,7 @@ const Navbar = () => {
             {isAdmin && (
               <Link
                 to="/alerts-management"
-                className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
+                className="flex items-center gap-1 font-medium text-white duration-300 text-decoration-none hover:text-white/80"
               >
                 <AlertTriangle className="w-4 h-4" /> Alerts
               </Link>
@@ -94,7 +101,7 @@ const Navbar = () => {
 
             <Link
               to="/activity-logs"
-              className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
+              className="flex items-center gap-1 font-medium text-white duration-300 text-decoration-none hover:text-white/80"
             >
               <Activity className="w-4 h-4" /> Activity Logs
             </Link>
@@ -102,7 +109,7 @@ const Navbar = () => {
             {/* Maps */}
             <Link
               to="/map"
-              className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
+              className="flex items-center gap-1 font-medium text-white duration-300 text-decoration-none hover:text-white/80"
             >
               <MapPin className="w-4 h-4" /> Maps
             </Link>
@@ -223,7 +230,7 @@ const Navbar = () => {
           {/* Regular Navigation Links */}
           <Link
             to="/dashboard"
-            className="block py-2 text-white text-decoration-none flex items-center gap-1"
+            className="flex items-center block gap-1 py-2 text-white text-decoration-none"
             onClick={() => setIsOpen(false)}
           >
             <Home className="w-4 h-4" /> Dashboard
@@ -232,7 +239,7 @@ const Navbar = () => {
           {isAdmin && (
             <Link
               to="/accounts-management"
-              className="block py-2 text-white text-decoration-none flex items-center gap-1"
+              className="flex items-center block gap-1 py-2 text-white text-decoration-none"
               onClick={() => setIsOpen(false)}
             >
               <Users className="w-4 h-4" /> Users
@@ -241,7 +248,7 @@ const Navbar = () => {
 
           <Link
             to="/map"
-            className="block py-2 text-white text-decoration-none flex items-center gap-1"
+            className="flex items-center block gap-1 py-2 text-white text-decoration-none"
             onClick={() => setIsOpen(false)}
           >
             <MapPin className="w-4 h-4" /> Maps
@@ -250,7 +257,7 @@ const Navbar = () => {
           {isAdmin && (
             <Link
               to="/alerts-management"
-              className="block py-2 text-white text-decoration-none flex items-center gap-1"
+              className="flex items-center block gap-1 py-2 text-white text-decoration-none"
               onClick={() => setIsOpen(false)}
             >
               <AlertTriangle className="w-4 h-4" /> Alerts

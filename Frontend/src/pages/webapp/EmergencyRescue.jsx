@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import Navbar from "./Navbar";
-import supabase from "../supabaseClient";
+import Navbar from "../../components/Navbar";
+import supabase from "../../supabaseClient";
 
-export default function RescueButton() {
+export default function EmergencyRescue() {
   const [userLocation, setUserLocation] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -232,7 +232,7 @@ export default function RescueButton() {
             )}
 
             {/* Two Column Layout for Rescue Options */}
-            <div className="grid grid-cols-2 gap-4 md:gap-6">
+            <div className="grid gap-4 gird-cols-1 lg:grid-cols-2 md:gap-6">
               {/* QUICK RESCUE - Instant Emergency Button */}
               <div className="p-6 border-4 border-red-500 bg-gradient-to-br from-red-900/40 to-orange-900/30 rounded-2xl backdrop-blur-xl animate-pulse">
                 <div className="flex items-center justify-between mb-4">
