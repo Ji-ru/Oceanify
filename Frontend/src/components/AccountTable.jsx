@@ -16,6 +16,22 @@ const AccountTable = ({ accounts, onEdit, onReload }) => {
 
   const roleHandler = (role) => (role == "admin" ? "Admin" : "User");
 
+  const getStatusBadge = (status) => {
+    if (status === true || status === 'true') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
+          Active
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">
+          Inactive
+        </span>
+      );
+    }
+  };
+
   return (
     <section
       aria-labelledby="accounts-heading"
@@ -35,6 +51,12 @@ const AccountTable = ({ accounts, onEdit, onReload }) => {
                   className="px-4 py-3 font-semibold text-gray-300 whitespace-nowrap"
                 >
                   #
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-3 font-semibold whitespace-nowrap"
+                >
+                  Status
                 </th>
                 <th
                   scope="col"
@@ -78,6 +100,9 @@ const AccountTable = ({ accounts, onEdit, onReload }) => {
                     {index + 1}
                   </td>
                   <td className="px-4 py-8 align-middle whitespace-nowrap">
+                    {getStatusBadge(acc.status)}
+                  </td>
+                  <td className="px-4 py-8 align-middle whitespace-nowrap">
                     {roleHandler(acc.role)}
                   </td>
                   <td className="px-4 py-8 align-middle whitespace-nowrap">
@@ -114,7 +139,7 @@ const AccountTable = ({ accounts, onEdit, onReload }) => {
 
               {accounts.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8">
+                  <td colSpan={7} className="px-4 py-8">
                     <div className="flex items-center justify-center w-full py-16 text-center text-gray-400 bg-[#2a2a2a] rounded-lg">
                       <div className="max-w-md mx-auto">
                         <svg

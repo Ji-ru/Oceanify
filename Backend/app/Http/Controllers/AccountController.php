@@ -23,7 +23,7 @@ class AccountController extends Controller {
     public function store(Request $request)
     {
         $result = $this->supabase->insert(
-            $request->only(['first_name', 'last_name', 'email', 'role'])
+            $request->only(['first_name', 'last_name', 'email', 'role','status'])
         );
 
         Log::info('Creating activity log for account creation', [
@@ -52,7 +52,7 @@ class AccountController extends Controller {
     {
         $result = $this->supabase->update(
             $id,
-            $request->only(['first_name', 'last_name', 'email', 'role'])
+            $request->only(['first_name', 'last_name', 'email', 'role','status'])
         );
 
         Log::info('Creating activity log for account update', [

@@ -296,7 +296,7 @@ export default function Maps() {
   //Handle forecast panel close - return to user location
   const handleForecastPanelClose = () => {
     setShowForecastPanel(false);
-    
+
     // Reset to user location if available
     if (userLocation) {
       setCurrentLocation(userLocation);
@@ -325,7 +325,7 @@ export default function Maps() {
       )}
 
       {/* Map */}
-      <div id="map" className="absolute inset-0 z-0" />
+      <div id="map" className="absolute inset-0 z-0 mt-16" />
 
       {/* Marine Visualizer */}
       <MarineVisualizer
@@ -342,7 +342,7 @@ export default function Maps() {
           showWeatherNotification={showWeatherNotification}
           toggleControlsPanel={toggleControlsPanel}
           toggleAlertsPanel={toggleAlertsPanel}
-          toggleWeatherNotification={toggleWeatherNotification} 
+          toggleWeatherNotification={toggleWeatherNotification}
           alertsCount={alerts.length}
         />
 

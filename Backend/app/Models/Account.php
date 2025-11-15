@@ -14,5 +14,6 @@ class Account extends Model
         'last_name',
         'email',
         'password',
+        'status',
     ];
 }
