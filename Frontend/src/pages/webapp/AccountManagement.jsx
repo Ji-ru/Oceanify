@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 // Components
 import Navbar from "../../components/Navbar";
-// import { useNavigate } from "react-router-dom";
 import AccountTable from "../../components/AccountTable";
 import EditAccountModal from "../../components/EditAccountModal";
 import CreateAccountModal from "../../components/CreateAccountModal";
@@ -10,9 +9,9 @@ import CreateAccountModal from "../../components/CreateAccountModal";
 import { useAccounts } from "../../contexts/AccountContext";
 
 /**
- * Displays Account Information of exisiting users (Admin and Users)
+ * Displays Account Information of existing users (Admin and Users)
  * Allows creating and updating user accounts
- * @returns exisiting accounts from the database
+ * @returns existing accounts from the database
  */
 const AccountManagementPage = () => {
   // Context: account data, loading state, and reload function
@@ -23,6 +22,11 @@ const AccountManagementPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   // Resets whenever events (Insert, Update, and Delete user) happens
   const [lastLoaded, setLastLoaded] = useState(new Date());
+  
+  // Filter and Search States
+  const [filterStatus, setFilterStatus] = useState("all"); // all, active, inactive
+  const [filterRole, setFilterRole] = useState("all"); // all, admin, user
+  const [searchTerm, setSearchTerm] = useState("");
 
   // ===============================================
   // DATA LOADING
@@ -50,22 +54,71 @@ const AccountManagementPage = () => {
   };
 
   // ===============================================
-  // COMPUTED VALUES
+  // COMPUTED VALUES WITH FILTERS
   // ===============================================
 
   /**
-   * Total number of accounts (memoized for performance)
-   * Caches computed values
-   * Updates when changes are made (Insertion or Deletion of user account)
+   * Filter accounts based on status, role, and search term
    */
+  const filteredAccounts = useMemo(() => {
+    let filtered = accounts;
 
+    // Filter by status
+    if (filterStatus !== "all") {
+      const isActive = filterStatus === "active";
+      filtered = filtered.filter(acc => 
+        acc.status === isActive || acc.status === (isActive ? 'true' : 'false')
+      );
+    }
+
+    // Filter by role
+    if (filterRole !== "all") {
+      filtered = filtered.filter(acc => 
+        acc.role.toLowerCase() === filterRole.toLowerCase()
+      );
+    }
+
+    // Filter by search term (searches in first name, last name, and email)
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(acc =>
+        acc.first_name?.toLowerCase().includes(search) ||
+        acc.last_name?.toLowerCase().includes(search) ||
+        acc.email?.toLowerCase().includes(search)
+      );
+    }
+
+    return filtered;
+  }, [accounts, filterStatus, filterRole, searchTerm]);
+
+  /**
+   * Total number of accounts (memoized for performance)
+   */
   const totalAccounts = useMemo(() => accounts.length, [accounts]);
+
   /**
    * Total active users (memoized for performance)
-   * Caches computed values
-   * Updates when changes are made (Insertion or Deletion of user account)
    */
-  const activeUsers = useMemo(() => accounts.length, [accounts]);
+  const activeUsers = useMemo(() => 
+    accounts.filter(acc => acc.status === true || acc.status === 'true').length, 
+    [accounts]
+  );
+
+  /**
+   * Total inactive users
+   */
+  const inactiveUsers = useMemo(() => 
+    accounts.filter(acc => acc.status === false || acc.status === 'false').length, 
+    [accounts]
+  );
+
+  /**
+   * Admin count
+   */
+  const adminCount = useMemo(() => 
+    accounts.filter(acc => acc.role.toLowerCase() === 'admin').length, 
+    [accounts]
+  );
 
   // ===============================================
   // UI RENDERING + IMPLEMENTED FUNCTIONS
@@ -91,7 +144,7 @@ const AccountManagementPage = () => {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-white transition-all duration-200 bg-green-600 hover:bg-green-700 sm:px-6 sm:py-3 sm:text-base"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-white transition-all duration-200 bg-green-600 rounded-lg hover:bg-green-700 sm:px-6 sm:py-3 sm:text-base"
             >
               <svg
                 className="w-4 h-4 sm:w-5 sm:h-5"
@@ -111,7 +164,7 @@ const AccountManagementPage = () => {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
             <div className="p-4 bg-[#1e1e1e] rounded-xl">
               <div className="text-sm text-gray-400">Total Accounts</div>
               <div className="mt-1 text-2xl font-bold text-white">
@@ -120,15 +173,78 @@ const AccountManagementPage = () => {
             </div>
             <div className="p-4 bg-[#1e1e1e] rounded-xl">
               <div className="text-sm text-gray-400">Active Users</div>
-              <div className="mt-1 text-2xl font-bold text-white">
+              <div className="mt-1 text-2xl font-bold text-green-400">
                 {activeUsers}
               </div>
             </div>
             <div className="p-4 bg-[#1e1e1e] rounded-xl">
-              <div className="text-sm text-gray-400">Last Loaded</div>
-              <div className="mt-1 text-sm font-medium text-gray-300">
-                {lastLoaded.toLocaleTimeString()}
+              <div className="text-sm text-gray-400">Inactive Users</div>
+              <div className="mt-1 text-2xl font-bold text-gray-400">
+                {inactiveUsers}
               </div>
+            </div>
+            <div className="p-4 bg-[#1e1e1e] rounded-xl">
+              <div className="text-sm text-gray-400">Admins</div>
+              <div className="mt-1 text-2xl font-bold text-blue-400">
+                {adminCount}
+              </div>
+            </div>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="p-4 bg-[#1e1e1e] rounded-xl mb-6">
+            <div className="flex flex-col gap-4 lg:flex-row">
+              {/* Search */}
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+
+              {/* Role Filter */}
+              <select
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+                className="p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
+              >
+                <option value="all">All Roles</option>
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+              </select>
+
+              {/* Clear Filters Button */}
+              {(filterStatus !== "all" || filterRole !== "all" || searchTerm) && (
+                <button
+                  onClick={() => {
+                    setFilterStatus("all");
+                    setFilterRole("all");
+                    setSearchTerm("");
+                  }}
+                  className="px-4 py-3 text-white bg-gray-600 rounded-lg hover:bg-gray-700 whitespace-nowrap"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+
+            {/* Results Count */}
+            <div className="mt-3 text-sm text-gray-400">
+              Showing {filteredAccounts.length} of {totalAccounts} accounts
             </div>
           </div>
 
@@ -143,7 +259,7 @@ const AccountManagementPage = () => {
               </div>
             ) : (
               <AccountTable
-                accounts={accounts}
+                accounts={filteredAccounts}
                 onEdit={(acc) => setEditAccount(acc)}
                 onReload={handleReload}
               />

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
-import apiClient from "../utils/apiClient"; // ✅ Changed from axios
+import apiClient from "../utils/apiClient";
 import { useAuth } from "../contexts/AuthContext";
 
 const EditAccountModal = ({ account, onClose, onReload }) => {
@@ -12,6 +12,7 @@ const EditAccountModal = ({ account, onClose, onReload }) => {
     first_name: "",
     last_name: "",
     role: "user",
+    status: true,
   });
   const [loading, setLoading] = useState(false);
   const { refreshUserRole, user } = useAuth();
@@ -23,12 +24,20 @@ const EditAccountModal = ({ account, onClose, onReload }) => {
         first_name: account.first_name || "",
         last_name: account.last_name || "",
         role: account.role || "user",
+        status: account.status !== undefined ? account.status : true,
       });
     }
   }, [account]);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Convert status string to boolean
+    if (name === "status") {
+      setForm({ ...form, [name]: value === "true" });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
 
   const handleSave = async () => {
@@ -37,7 +46,6 @@ const EditAccountModal = ({ account, onClose, onReload }) => {
 
     setLoading(true);
     try {
-      // ✅ Using apiClient instead of axios
       const response = await apiClient.put(`/accounts/${account.id}`, form);
 
       console.log("Update response:", response.data);
@@ -104,6 +112,21 @@ const EditAccountModal = ({ account, onClose, onReload }) => {
             <Form.Text className="text-muted">
               <strong>User:</strong> Can access Dashboard and Maps.<br/>
               <strong>Admin:</strong> Full access including user management and alerts.
+            </Form.Text>
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>Status <span className="text-danger">*</span></Form.Label>
+            <Form.Select
+              name="status"
+              value={form.status.toString()}
+              onChange={handleChange}
+            >
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </Form.Select>
+            <Form.Text className="text-muted">
+              <strong>Active:</strong> User can log in and access the system.<br/>
+              <strong>Inactive:</strong> User account is disabled.
             </Form.Text>
           </Form.Group>
         </Form>
