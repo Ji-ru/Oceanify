@@ -72,11 +72,20 @@ const Navbar = () => {
               <Home className="w-4 h-4" /> Dashboard
             </Link>
 
+            {/* Maps */}
+            <Link
+              to="/map"
+              className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1 mr-2"
+            >
+              <MapPin className="w-4 h-4" /> Maps
+            </Link>
+          </div>
+
             {/* Users - Admin Only */}
             {isAdmin && (
               <Link
                 to="/accounts-management"
-                className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
+                className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1 mr-2"
               >
                 <Users className="w-4 h-4" /> Users
               </Link>
@@ -92,21 +101,14 @@ const Navbar = () => {
               </Link>
             )}
 
-            <Link
+            {isAdmin && <Link
               to="/activity-logs"
               className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
             >
               <Activity className="w-4 h-4" /> Activity Logs
-            </Link>
+            </Link>}
 
-            {/* Maps */}
-            <Link
-              to="/map"
-              className="font-medium text-white duration-300 text-decoration-none hover:text-white/80 flex items-center gap-1"
-            >
-              <MapPin className="w-4 h-4" /> Maps
-            </Link>
-          </div>
+
 
           {/* CRITICAL: Rescue Button - Consistent styling */}
           <div className="relative flex items-center gap-4 pl-4 ">
