@@ -16,6 +16,7 @@ import AccountManagement from "./pages/webapp/AccountManagement";
 import Map from "./pages/webapp/Map";
 import RescueManagement from "./pages/webapp/RescueManagement";
 import AlertManagement from "./pages/webapp/AlertManagement";
+import ActivityLogs from "./pages/webapp/ActivityLogs";
 import Dashboard from "./pages/webapp/Dashboard";
 import Profile from "./pages/webapp/Profile";
 import RescueButton from "./components/RescueButton";
@@ -109,6 +110,15 @@ function App() {
               Redirect unknown paths to SignIn
           ----------------------------- */}
           <Route path="*" element={<SignIn />} />
+
+          <Route
+            path="/activity-logs"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <ActivityLogs />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </AccountProvider>
     </AuthProvider>

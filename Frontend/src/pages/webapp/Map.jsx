@@ -339,10 +339,10 @@ export default function Maps() {
         <ControlToggleButton
           showControlsPanel={showControlsPanel}
           showAlertsPanel={showAlertsPanel}
-          showWeatherNotification={showWeatherNotification} // Add this prop
+          showWeatherNotification={showWeatherNotification}
           toggleControlsPanel={toggleControlsPanel}
           toggleAlertsPanel={toggleAlertsPanel}
-          toggleWeatherNotification={toggleWeatherNotification} // Add this prop
+          toggleWeatherNotification={toggleWeatherNotification} 
           alertsCount={alerts.length}
         />
 

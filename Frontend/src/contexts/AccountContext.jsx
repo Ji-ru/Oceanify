@@ -1,6 +1,6 @@
 // contexts/AccountContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../utils/apiClient'; // ✅ Changed from axios
 
 const AccountContext = createContext();
 
@@ -25,7 +25,8 @@ export const AccountProvider = ({ children }) => {
 
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:8000/api/accounts");
+      // ✅ Using apiClient instead of axios
+      const response = await apiClient.get("/accounts");
       setAccounts(response.data);
       setLastFetch(new Date());
     } catch (error) {

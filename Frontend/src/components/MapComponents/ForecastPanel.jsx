@@ -106,12 +106,13 @@ const ForecastPanel = ({
   return (
     <PanelContainer>
       <div className="bg-[#1e1e1e] border border-neutral-600 rounded-2xl shadow-lg">
-        <div className="p-4">
-          <div className="relative flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="p-3 sm:p-4"> {/* Responsive padding */}
+          <div className="relative flex flex-col gap-2 mb-3 sm:flex-row sm:items-center sm:justify-between sm:mb-4 sm:gap-3"> {/* Responsive spacing and layout */}
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-xs sm:text-sm font-semibold text-white truncate"> {/* Responsive text size */}
                 7-DAY FORECAST - {getLocationName()}
               </h3>
+              <br />
               {displayLocation && (
                 <div className="text-xs text-gray-400 truncate">
                   {displayLocation.lat.toFixed(2)}°N,{" "}
@@ -122,14 +123,15 @@ const ForecastPanel = ({
 
             <button
               onClick={toggleMinimize}
-              className="flex items-center justify-center w-6 h-6 transition-all duration-200 border rounded bg-[#272727] hover:bg-[#373737] border-[#373737]"
+              className="flex items-center justify-center w-6 h-6 transition-all duration-200 border rounded bg-[#272727] hover:bg-[#373737] border-[#373737] self-end sm:self-auto" /* Responsive button alignment */
               title="Minimize forecast"
             >
               <ChevronUp className="w-3 h-3 text-white" />
             </button>
           </div>
 
-          <div className="flex gap-2 pb-2 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-[#0f0f0f]">
+          {/* Responsive scrollable forecast days with adaptive sizing */}
+          <div className="flex gap-1 sm:gap-2 pb-2 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-500 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-[#0f0f0f]">
             {daily.time.slice(0, 7).map((date, index) => {
               const dayName =
                 index === 0 ? "TODAY" : DAYS_OF_WEEK[new Date(date).getDay()];
@@ -145,15 +147,20 @@ const ForecastPanel = ({
               return (
                 <div
                   key={index}
-                  className="flex-shrink-0 w-20 p-3 transition-all duration-200 bg-[#272727] rounded-lg hover:bg-[#323232] sm:w-24"
+                  className="flex-shrink-0 p-2 transition-all duration-200 bg-[#272727] rounded-lg hover:bg-[#323232] 
+                  w-16 /* Mobile width */
+                  sm:w-20 /* Small tablet width */
+                  md:w-24 /* Desktop width */"
                 >
-                  <div className="space-y-2 text-center">
+                  <div className="space-y-1 sm:space-y-2 text-center"> {/* Responsive spacing */}
                     <div className="text-xs font-semibold text-white truncate">
                       {dayName}
                     </div>
-                    <div className="text-2xl">{weatherIcon}</div>
+                    <div className="text-xl sm:text-2xl"> {/* Responsive icon size */}
+                      {weatherIcon}
+                    </div>
                     {precipitation > 20 && (
-                      <div className="flex items-center justify-center gap-1 px-2 py-1 text-xs rounded text-white bg-[#1e1e1e]">
+                      <div className="flex items-center justify-center gap-1 px-1 py-1 text-xs rounded text-white bg-[#1e1e1e]">
                         <svg
                           className="w-3 h-3"
                           fill="currentColor"
@@ -164,11 +171,13 @@ const ForecastPanel = ({
                         {precipitation}%
                       </div>
                     )}
-                    <div className="flex items-baseline justify-center gap-2">
-                      <div className="text-lg font-bold text-white">
+                    <div className="flex items-baseline justify-center gap-1 sm:gap-2"> {/* Responsive gap */}
+                      <div className="text-sm sm:text-lg font-bold text-white"> {/* Responsive text size */}
                         {maxTemp}°
                       </div>
-                      <div className="text-sm text-gray-400">{minTemp}°</div>
+                      <div className="text-xs sm:text-sm text-gray-400"> {/* Responsive text size */}
+                        {minTemp}°
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -176,9 +185,9 @@ const ForecastPanel = ({
             })}
           </div>
 
-          {/* Scroll bar indicator on mobile */}
-          <div className="flex justify-center mt-3 sm:hidden">
-            <div className="w-20 h-1 rounded-full bg-[#272727]" />
+          {/* Scroll bar indicator - visible only on mobile */}
+          <div className="flex justify-center mt-2 sm:hidden">
+            <div className="w-16 h-1 rounded-full bg-[#272727]" />
           </div>
         </div>
       </div>

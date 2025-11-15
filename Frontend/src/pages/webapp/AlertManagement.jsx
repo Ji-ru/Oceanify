@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/Navbar";
 import { createClient } from "@supabase/supabase-js";
 import API from "../../api";
+import { usePagination } from "../../hooks/usePagination";
+
 /**
  * Initializes Supabase Client using evironment varibales
  */
@@ -36,6 +38,9 @@ export default function AlertManagementPage() {
 
   // Loading Indicator for API Operations State
   const [loading, setLoading] = useState(false);
+
+  // Modal toggle state
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Predefined alert messages (memoized to prevent recreation on render)
   const predefinedMessages = useMemo(() => [
@@ -71,6 +76,18 @@ export default function AlertManagementPage() {
     document.documentElement.classList.toggle("dark", newTheme === "dark");
     localStorage.setItem("theme", newTheme);
   };
+
+  // ================================
+  // PAGINATION HOOK
+  // ================================
+  const {
+    currentPage,
+    totalPages,
+    currentData: paginatedAlerts,
+    nextPage,
+    prevPage,
+    goToPage,
+  } = usePagination(alertList, 5); // 5 alerts per page
 
   // ===============================================
   // DATA FETCHING
@@ -310,96 +327,115 @@ export default function AlertManagementPage() {
         <Navbar />
       </div>
 
-      {/* Content - Added proper top padding to prevent navbar overlap */}
-      <div className="flex items-center justify-center pt-20 mx-auto lg:p-6 lg:pt-28">
-        {" "}
-        <div className="flex flex-col w-full max-w-4xl p-4">
+      {/* Main Content */}
+      <div className="flex justify-center pt-20 mx-auto lg:pt-28 lg:px-6">
+        <div className="flex flex-col w-full max-w-5xl p-4 space-y-6">
           {/* Header Section */}
-          <div className="flex flex-col items-start justify-between gap-4 mb-6 lg:flex-row lg:items-center">
+          <div className="flex flex-col gap-2 mb-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-bold text-white sm:text-3xl">
                 Alert Management
               </h1>
-              <p className="mt-2 text-sm text-gray-400 sm:text-base">
+              <p className="mt-1 text-sm text-gray-400 sm:text-base">
                 Send, edit, or manage alerts for seafarers
               </p>
             </div>
           </div>
 
-          {/* Alert Creation Card */}
-          <div className="p-4 mb-6 bg-[#1e1e1e] rounded-xl sm:p-6">
-            <h2 className="flex items-center gap-2 mb-4 text-lg font-bold text-white sm:text-xl">
-              <span className="text-red-400">⚠️</span>
-              {editingId ? "Edit Alert" : "Create New Alert"}
-            </h2>
+          {/* Create New Alert Button */}
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 mb-4 text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none w-full sm:w-auto"
+          >
+            Create New Alert
+          </button>
 
-            {/* Alert Title Input */}
-            <div className="mb-4">
-              <label className="block mb-2 text-sm font-medium text-gray-400">
-                Alert Title *
-              </label>
-              <input
-                type="text"
-                className="w-full p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none transition-all duration-200"
-                placeholder="Enter alert title..."
-                value={alertTitle}
-                onChange={(e) => setAlertTitle(e.target.value)}
-              />
+          {/* Modal */}
+          {isModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+              <div className="w-full max-w-lg p-6 bg-[#1e1e1e] rounded-2xl shadow-xl overflow-y-auto max-h-[90vh] relative">
+                {/* Close Button */}
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="absolute top-3 right-3 text-white text-2xl font-bold hover:text-red-500 transition-colors"
+                >
+                  &times;
+                </button>
+
+                {/* Modal Header */}
+                <h2 className="flex items-center gap-2 mb-6 text-lg font-bold text-white sm:text-xl">
+                  <span className="text-red-400">⚠️</span>
+                  {editingId ? "Edit Alert" : "Create New Alert"}
+                </h2>
+
+                {/* Form */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-400">
+                      Alert Title *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter alert title..."
+                      value={alertTitle}
+                      onChange={(e) => setAlertTitle(e.target.value)}
+                      className="w-full p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-400">
+                      Choose Predefined Message
+                    </label>
+                    <select
+                      onChange={(e) => setAlertMsg(e.target.value)}
+                      value={alertMsg || ""}
+                      className="w-full p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-200"
+                    >
+                      <option value="">Select a message</option>
+                      {predefinedMessages.map((msg, index) => (
+                        <option key={index} value={msg}>
+                          {msg.length > 60 ? msg.slice(0, 60) + "..." : msg}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-400">
+                      Alert Message *
+                    </label>
+                    <textarea
+                      rows={5}
+                      placeholder="Type or edit an alert message..."
+                      value={alertMsg}
+                      onChange={(e) => setAlertMsg(e.target.value)}
+                      className="w-full p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleSendAlert}
+                    disabled={loading}
+                    className={`w-full py-3 text-white font-medium rounded-lg transition-all duration-200 ${
+                      editingId
+                        ? "bg-green-600 hover:bg-green-700"
+                        : "bg-red-600 hover:bg-red-700"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {loading
+                      ? "Sending..."
+                      : editingId
+                      ? "Update Alert"
+                      : "Send Alert"}
+                  </button>
+                </div>
+              </div>
             </div>
-
-            {/* Predefined Messages */}
-            <div className="mb-4">
-              <label className="block mb-2 text-sm font-medium text-gray-400">
-                Choose Predefined Message
-              </label>
-              <select
-                onChange={(e) => setAlertMsg(e.target.value)}
-                className="w-full p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none transition-all duration-200"
-                value={alertMsg || ""}
-              >
-                <option value=""> Select a message </option>
-                {predefinedMessages.map((msg, index) => (
-                  <option key={index} value={msg}>
-                    {msg.length > 60 ? msg.slice(0, 60) + "..." : msg}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Alert Message Text area */}
-            <div className="mb-4">
-              <label className="block mb-2 text-sm font-medium text-gray-400">
-                Alert Message *
-              </label>
-              <textarea
-                className="w-full p-3 text-white bg-[#272727] border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none transition-all duration-200"
-                rows={4}
-                placeholder="Type or edit an alert message..."
-                value={alertMsg}
-                onChange={(e) => setAlertMsg(e.target.value)}
-              />
-            </div>
-
-            {/* Action Button */}
-            <button
-              onClick={handleSendAlert}
-              disabled={loading}
-              className={`w-full py-3 text-white font-medium rounded-lg transition-all duration-200 ${
-                editingId
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-red-600 hover:bg-red-700"
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {loading
-                ? "Sending..."
-                : editingId
-                ? "Update Alert"
-                : "Send Alert"}
-            </button>
-          </div>
+          )}
 
           {/* Alert List Section */}
-          <div className="p-4 bg-[#1e1e1e] rounded-xl sm:p-6">
+          <div className="p-4 bg-[#1e1e1e] rounded-2xl sm:p-6">
             <h2 className="flex items-center gap-2 mb-4 text-lg font-bold text-white sm:text-xl">
               <span className="text-blue-400">📋</span>
               Active Alerts ({alertList.length})
@@ -410,51 +446,80 @@ export default function AlertManagementPage() {
                 <p className="text-gray-400">No alerts yet.</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {alertList.map((alert) => (
-                  <div
+              <ul className="divide-y divide-gray-700">
+                {paginatedAlerts.map((alert) => (
+                  <li
                     key={alert.id}
-                    className={`p-4 rounded-lg transition-all duration-200 ${
-                      alert.type === "auto"
-                        ? "bg-yellow-900/20 border-yellow-600"
-                        : "bg-[#272727] border-blue-600"
-                    }`}
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between py-3`}
                   >
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="mb-1 text-lg font-bold text-white break-words">
-                          {alert.title || "No Title"}
-                        </h3>
-                        <p className="mb-2 text-gray-300 break-words">
-                          {alert.message}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                          <span>{new Date(alert.time).toLocaleString()}</span>
-                          <span className="px-2 py-1 rounded bg-[#272727]">
-                            {alert.type}
-                          </span>
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-bold text-lg break-words">
+                        {alert.title || "No Title"}
+                      </h3>
+                      <p className="text-gray-300 break-words">
+                        {alert.message}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-400">
+                        <span>{new Date(alert.time).toLocaleString()}</span>
+                        <span className="px-2 py-1 rounded bg-[#272727]">
+                          {alert.type}
+                        </span>
                       </div>
-
-                      {alert.type !== "auto" && (
-                        <div className="flex gap-2 mt-2 sm:mt-0 sm:flex-col">
-                          <button
-                            onClick={() => handleEditAlert(alert)}
-                            className="px-3 py-2 text-sm text-white transition-colors bg-yellow-600 rounded-lg hover:bg-yellow-700"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAlert(alert.id)}
-                            className="px-3 py-2 text-sm text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
                     </div>
-                  </div>
+
+                    {alert.type !== "auto" && (
+                      <div className="flex gap-2 mt-3 sm:mt-0 sm:flex-col">
+                        <button
+                          onClick={() => handleEditAlert(alert)}
+                          className="px-3 py-2 text-sm text-white transition-colors bg-yellow-600 rounded-lg hover:bg-yellow-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAlert(alert.id)}
+                          className="px-3 py-2 text-sm text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </li>
                 ))}
+              </ul>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-wrap justify-center gap-2 mt-6">
+                <button
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm font-semibold rounded bg-blue-600 text-white disabled:bg-gray-700"
+                >
+                  Prev
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`px-3 py-1 text-sm font-semibold rounded ${
+                        page === currentPage
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-700 text-gray-400"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+                <button
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm font-semibold rounded bg-blue-600 text-white disabled:bg-gray-700"
+                >
+                  Next
+                </button>
               </div>
             )}
           </div>

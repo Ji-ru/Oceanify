@@ -4,6 +4,7 @@ import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 import supabase from "../supabaseClient";
+import apiClient from "../utils/apiClient"; // ✅ Added for logging
 
 const CreateAccountModal = ({ show, onClose, onReload }) => {
   const [form, setForm] = useState({
@@ -71,6 +72,20 @@ const CreateAccountModal = ({ show, onClose, onReload }) => {
       });
 
       if (error) throw error;
+
+      // ✅ Log the account creation activity
+      try {
+        await apiClient.post('/accounts', {
+          first_name: form.first_name,
+          last_name: form.last_name,
+          email: form.email,
+          role: 'user'
+        });
+        console.log('✅ Activity logged for account creation');
+      } catch (logError) {
+        console.error('Failed to log activity:', logError);
+        // Don't fail the whole operation if logging fails
+      }
 
       // Success! Show confirmation message
       alert(

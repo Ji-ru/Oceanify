@@ -58,7 +58,7 @@ const SEVERITY_CONFIG = {
   },
 };
 
-export const getSeverityConfig = (severity) => SEVERITY_CONFIG[severity];
+export const getSeverityConfig = (severity) => SEVERITY_CONFIG[severity] || SEVERITY_CONFIG[SEVERITY.SAFE];
 
 /**
  * Analyze weather conditions and determine severity

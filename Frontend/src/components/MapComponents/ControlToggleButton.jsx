@@ -29,7 +29,7 @@ const ControlToggleButton = ({
       {/* Weather Notification Toggle */}
       <button
         onClick={toggleWeatherNotification}
-        className={`p-3 sm:p-4 bg-[#1e1e1e] rounded-full border-1 border-neutral-600 hover:bg-[#272727] transition-all duration-200 ${
+        className={`p-10 sm:p-4 bg-[#1e1e1e] rounded-full border-1 border-neutral-600 hover:bg-[#272727] transition-all duration-200 ${
           showWeatherNotification ? "bg-[#272727]" : ""
         }`}
       >

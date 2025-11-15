@@ -121,7 +121,7 @@ export default function WeatherNotificationPanel({ onShowAlerts }) {
    */
   const renderCompactHeader = useCallback(() => {
     return (
-      <div className="flex items-center justify-between p-3">
+      <div className="flex items-center justify-between p-3 gap-2">
         <div className="flex items-center gap-2">
           <div
             className="flex items-center justify-center flex-shrink-0 w-8 h-8 text-sm border-2 rounded-full"
