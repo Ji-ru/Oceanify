@@ -57,13 +57,19 @@ export default function AdminEmergencyMarkers({ mapRef }) {
             iconAnchor: [24, 24],
           });
 
-          const marker = L.marker([req.latitude, req.longitude], { icon: sosIcon })
+          const marker = L.marker([req.latitude, req.longitude], {
+            icon: sosIcon,
+          })
             .addTo(mapRef.current)
             .bindPopup(
               `<div class="p-4 bg-gradient-to-br from-red-900/90 to-orange-900/70 rounded-xl border border-red-500/30 backdrop-blur-sm min-w-[200px]">
                 <div class="text-white font-bold text-lg mb-2">🆘 EMERGENCY RESCUE</div>
-                <div class="text-red-200 text-sm mb-1">Reason: ${req.reason.replace(/_/g, " ").toUpperCase()}</div>
-                <div class="text-orange-200 text-xs">${new Date(req.timestamp).toLocaleString()}</div>
+                <div class="text-red-200 text-sm mb-1">Reason: ${req.reason
+                  .replace(/_/g, " ")
+                  .toUpperCase()}</div>
+                <div class="text-orange-200 text-xs">${new Date(
+                  req.timestamp
+                ).toLocaleString()}</div>
                 <div class="mt-2 text-xs text-yellow-200">Status: ${req.status.toUpperCase()}</div>
               </div>`
             );

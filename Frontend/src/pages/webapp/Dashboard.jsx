@@ -66,7 +66,7 @@ export default function DashboardPage() {
   const [showMobilePorts, setShowMobilePorts] = useState(false);
 
   // Add these two lines for marine alerts:
-  const [expandedAlert, setExpandedAlert] = useState(false);
+
   const [selectedAlertTab, setSelectedAlertTab] = useState("overview");
 
   // New: live rescue requests and admin alerts
@@ -647,11 +647,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-      {expandedAlert ? (
-        <ChevronUp className="w-4 h-4 text-white" />
-      ) : (
-        <ChevronDown className="w-4 h-4 text-white" />
-      )}
     </div>
   );
 
@@ -888,14 +883,14 @@ export default function DashboardPage() {
         )}
         {selectedAlertTab === "ports" && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 ">
               <AlertTriangle className="w-4 h-4 text-blue-400" />
               <h3 className="text-sm font-semibold text-white">
                 Port Conditions
               </h3>
             </div>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto">
+            <div className="space-y-2 overflow-y-auto max-h-60 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-[#0f0f0f] [&::-webkit-scrollbar-track]:rounded-full">
               {getPortsAnalysis.map((port, index) => {
                 const portConfig = getSeverityConfig(port.severity);
                 return (
@@ -919,14 +914,14 @@ export default function DashboardPage() {
                         {portConfig.icon}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center text-xs">
+                    <div className="flex items-center justify-between text-xs">
                       <span
                         style={{ color: portConfig.color }}
                         className="font-medium"
                       >
                         {port.status}
                       </span>
-                      <span className="text-gray-400 text-xs">
+                      <span className="text-xs text-gray-400">
                         {port.location}
                       </span>
                     </div>
@@ -950,7 +945,7 @@ export default function DashboardPage() {
               })}
 
               {getPortsAnalysis.length === 0 && (
-                <div className="text-center py-4 text-gray-400 text-xs">
+                <div className="py-4 text-xs text-center text-gray-400">
                   No port data available
                 </div>
               )}
@@ -958,7 +953,7 @@ export default function DashboardPage() {
 
             {/* Quick Ports Summary */}
             <div className="grid grid-cols-4 gap-2 pt-2">
-              <div className="p-2 text-center rounded bg-green-500/10 border border-green-500">
+              <div className="p-2 text-center border border-green-500 rounded bg-green-500/10">
                 <div className="text-lg font-bold text-green-400">
                   {
                     getPortsAnalysis.filter((p) => p.severity === SEVERITY.SAFE)
@@ -967,7 +962,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-xs text-green-300">Operational</div>
               </div>
-              <div className="p-2 text-center rounded bg-yellow-500/10 border border-yellow-500">
+              <div className="p-2 text-center border border-yellow-500 rounded bg-yellow-500/10">
                 <div className="text-lg font-bold text-yellow-400">
                   {
                     getPortsAnalysis.filter(
@@ -977,7 +972,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-xs text-yellow-300">Advisory</div>
               </div>
-              <div className="p-2 text-center rounded bg-orange-500/10 border border-orange-500">
+              <div className="p-2 text-center border border-orange-500 rounded bg-orange-500/10">
                 <div className="text-lg font-bold text-orange-400">
                   {
                     getPortsAnalysis.filter(
@@ -987,7 +982,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-xs text-orange-300">Caution</div>
               </div>
-              <div className="p-2 text-center rounded bg-red-500/10 border border-red-500">
+              <div className="p-2 text-center border border-red-500 rounded bg-red-500/10">
                 <div className="text-lg font-bold text-red-400">
                   {
                     getPortsAnalysis.filter(
@@ -1038,7 +1033,7 @@ export default function DashboardPage() {
               {/* Desktop/Tablet Select */}
               <div className="hidden sm:block">
                 <select
-                  className="px-4 py-2 text-sm bg-[#1e1e1e] text-white rounded-lg hover:bg-[#272727] focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-200"
+                  className="px-4 py-2 text-sm bg-[#1e1e1e] text-white rounded-lg hover:bg-[#272727] focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-200 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-[#0f0f0f] [&::-webkit-scrollbar-track]:rounded-full"
                   value={selectedPort ? selectedPort.port_name : ""}
                   onChange={(e) => {
                     const portName = e.target.value;
@@ -1076,14 +1071,14 @@ export default function DashboardPage() {
                   <span className="truncate">
                     {selectedPort ? selectedPort.port_name : "Select Port"}
                   </span>
-                  <ChevronDown className="w-4 h-4 flex-shrink-0 ml-2" />
+                  <ChevronDown className="flex-shrink-0 w-4 h-4 ml-2" />
                 </button>
 
                 {/* Mobile Ports Modal */}
                 {showMobilePorts && (
-                  <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
                     <div className="bg-[#1e1e1e] rounded-xl w-full max-w-sm max-h-[80vh] overflow-hidden">
-                      <div className="p-4 flex justify-between items-center">
+                      <div className="flex items-center justify-between p-4">
                         <h3 className="font-semibold text-white">
                           Select Port
                         </h3>
@@ -1094,7 +1089,7 @@ export default function DashboardPage() {
                           ✕
                         </button>
                       </div>
-                      <div className="max-h-96 overflow-y-auto">
+                      <div className="overflow-y-auto max-h-96">
                         <button
                           className="w-full p-4 text-left hover:bg-[#272727] text-white"
                           onClick={() => {
@@ -1170,87 +1165,21 @@ export default function DashboardPage() {
 
         {/* Notification Dropdown */}
         {showNotifications && (
-          <div className="fixed right-4 top-20 z-50 w-80 bg-[#1e1e1e] rounded-xl shadow-2xl">
-            <div className="p-4 border-b border-gray-700">
-              <h3 className="font-bold text-white">Rescue Notifications</h3>
-              <p className="text-sm text-gray-400">
-                {
-                  rescueNotifications.filter((n) => n.status === "pending")
-                    .length
-                }{" "}
-                pending
-              </p>
-            </div>
-            <div className="overflow-y-auto max-h-96">
-              {rescueNotifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
-                  No rescue requests
-                </div>
-              ) : (
-                rescueNotifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className="p-4 border-b border-gray-700"
-                  >
-                    <div className="font-semibold text-white">
-                      Emergency Rescue
-                    </div>
-                    <div className="text-sm text-gray-300">
-                      <MapPin className="inline w-3 h-3 mr-1" />
-                      {notification.latitude?.toFixed(4)}°N,{" "}
-                      {notification.longitude?.toFixed(4)}°E
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      🕒 {new Date(notification.timestamp).toLocaleString()}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+          <div className="fixed right-18 top-32 z-50 w-80 bg-[#1e1e1e] rounded-xl shadow-2xl">
+            {/* Notification Alert Component */}
+            <NotificationAlert
+              adminAlerts={adminAlerts}
+              autoRefresh={true}
+              classNames="fixed"
+            />
           </div>
         )}
 
         {/* Main Grid - New Layout */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Left Column - Weather Overview */}
-          <div className="lg:col-span-2">
+          <div className="order-2 lg:col-span-2 lg:row-start-1 lg:order-1">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {/* Temperature Card */}
-              <div className="p-6 bg-[#1e1e1e] rounded-xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <Thermometer className="w-8 h-8 text-red-400" />
-                  <div>
-                    <h3 className="font-bold text-white">Temperature</h3>
-                    <p className="text-2xl font-bold text-white">
-                      {formatValue(
-                        weatherData?.current?.temperature_2m,
-                        "°C",
-                        0
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-400">Fuel: 5°C</p>
-              </div>
-
-              {/* Wind Speed Card */}
-              <div className="p-6 bg-[#1e1e1e] rounded-xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <Wind className="w-8 h-8 text-blue-400" />
-                  <div>
-                    <h3 className="font-bold text-white">Wind Speed</h3>
-                    <p className="text-2xl font-bold text-white">
-                      {formatValue(
-                        weatherData?.current?.wind_speed_10m,
-                        " km/h",
-                        0
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-400">South Coast 21 km/h</p>
-              </div>
-
               {/* Wave Conditions */}
               <div className="p-6 bg-[#1e1e1e] rounded-xl md:col-span-2">
                 <h3 className="flex items-center gap-2 mb-4 text-lg font-bold text-white">
@@ -1368,19 +1297,237 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Safety Index - Modern Gauge Design */}
+              <div className="p-6 bg-gradient-to-br from-[#1a1a1a] to-[#2d2d2d] rounded-2xl  border-white/10 shadow-xl md:col-span-2  ">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/20">
+                      <Gauge className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">
+                        Marine Safety Index
+                      </h3>
+                      <p className="text-sm text-gray-400">
+                        Real-time conditions assessment
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-400">Last Updated</div>
+                    <div className="text-sm font-medium text-white">
+                      {new Date().toLocaleTimeString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Gauge Section */}
+                <div className="relative mb-6">
+                  {/* Gauge Container */}
+                  <div className="relative w-full h-32 mb-1">
+                    <svg viewBox="0 0 200 120" className="w-full h-full">
+                      {/* Background Track */}
+                      <path
+                        d="M 25 100 A 75 75 0 0 1 175 100"
+                        fill="none"
+                        stroke="#374151"
+                        strokeWidth="12"
+                        strokeLinecap="round"
+                        opacity="0.3"
+                      />
+
+                      {/* Active Fill */}
+                      <path
+                        d="M 25 100 A 75 75 0 0 1 175 100"
+                        fill="none"
+                        stroke="url(#gaugeGradient)"
+                        strokeWidth="12"
+                        strokeLinecap="round"
+                        strokeDasharray="235.5"
+                        strokeDashoffset={
+                          235.5 - ((safetyIndex?.score || 0) / 10) * 235.5
+                        }
+                        className="transition-all duration-1000 ease-out"
+                      />
+
+                      {/* Gradient Definition */}
+                      <defs>
+                        <linearGradient
+                          id="gaugeGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="0%"
+                        >
+                          <stop offset="0%" stopColor="#ef4444" />
+                          <stop offset="25%" stopColor="#f59e0b" />
+                          <stop offset="50%" stopColor="#eab308" />
+                          <stop offset="75%" stopColor="#3b82f6" />
+                          <stop offset="100%" stopColor="#10b981" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Needle */}
+                      <g
+                        transform={`rotate(${
+                          -90 + (safetyIndex?.score || 0) * 18
+                        } 100 100)`}
+                        className="transition-transform duration-1000 ease-out"
+                      >
+                        <line
+                          x1="100"
+                          y1="100"
+                          x2="100"
+                          y2="35"
+                          stroke="white"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          filter="drop-shadow(0 0 2px rgba(255,255,255,0.5))"
+                        />
+                        <circle
+                          cx="100"
+                          cy="100"
+                          r="8"
+                          fill="#1a1a1a"
+                          stroke="white"
+                          strokeWidth="2"
+                        />
+                        <circle cx="100" cy="100" r="3" fill="white" />
+                      </g>
+
+                      {/* Danger Markers */}
+                      {[0, 2, 4, 6, 8, 10].map((mark, index) => (
+                        <g
+                          key={mark}
+                          transform={`rotate(${-90 + mark * 18} 100 100)`}
+                        >
+                          <line
+                            x1="100"
+                            y1="28"
+                            x2="100"
+                            y2={index % 2 === 0 ? "36" : "32"}
+                            stroke="white"
+                            strokeWidth={index % 2 === 0 ? "2" : "1"}
+                            strokeOpacity="0.5"
+                          />
+                        </g>
+                      ))}
+                    </svg>
+
+                    {/* Scale Labels */}
+                    <div className="absolute inset-0 flex items-end justify-between px-4 pb-0">
+                      {[0, 5, 10].map((label) => (
+                        <div key={label} className="flex flex-col items-center">
+                          <span className="text-xs font-medium text-gray-400">
+                            {label}
+                          </span>
+                          <div className="w-px h-1 mt-0.5 bg-gray-600"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Center Score Display */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="-mt-6 text-center">
+                      <div className="inline-flex flex-col items-center px-6 py-3 bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] rounded-xl border border-white/20 shadow-lg backdrop-blur-sm">
+                        <div className="mb-0.5 text-2xl font-black text-white">
+                          {safetyIndex?.score || "--"}
+                          <span className="ml-0.5 text-sm font-semibold text-gray-400">
+                            /10
+                          </span>
+                        </div>
+                        <div
+                          className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            (safetyIndex?.score || 0) >= 8
+                              ? "bg-green-500/20 text-green-300"
+                              : (safetyIndex?.score || 0) >= 6
+                              ? "bg-blue-500/20 text-blue-300"
+                              : (safetyIndex?.score || 0) >= 4
+                              ? "bg-yellow-500/20 text-yellow-300"
+                              : "bg-red-500/20 text-red-300"
+                          }`}
+                        >
+                          {safetyIndex?.level || "Loading..."}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Advisory Section */}
+                {advisory.severity !== "unknown" && (
+                  <div className="">
+                    <div
+                      className={`p-2 rounded-xl border-l-4 backdrop-blur-sm ${
+                        advisory.severity === "danger"
+                          ? "bg-gradient-to-r from-red-900/30 to-red-800/10 border-l-red-500"
+                          : advisory.severity === "caution"
+                          ? "bg-gradient-to-r from-amber-900/30 to-amber-800/10 border-l-amber-500"
+                          : "bg-gradient-to-r from-green-900/30 to-green-800/10 border-l-green-500"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`p-2 rounded-lg ${
+                            advisory.severity === "danger"
+                              ? "bg-red-500/20"
+                              : advisory.severity === "caution"
+                              ? "bg-amber-500/20"
+                              : "bg-green-500/20"
+                          }`}
+                        >
+                          {advisory.severity === "danger" && (
+                            <AlertTriangle className="w-5 h-5 text-red-400" />
+                          )}
+                          {advisory.severity === "caution" && (
+                            <AlertTriangle className="w-5 h-5 text-amber-400" />
+                          )}
+                          {advisory.severity === "ok" && (
+                            <div className="w-5 h-5 text-green-400">✓</div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div
+                            className={`text-sm font-bold mb-1 ${
+                              advisory.severity === "danger"
+                                ? "text-red-300"
+                                : advisory.severity === "caution"
+                                ? "text-amber-300"
+                                : "text-green-300"
+                            }`}
+                          >
+                            {advisory.severity === "danger" &&
+                              "DO NOT SAIL - CONDITIONS DANGEROUS"}
+                            {advisory.severity === "caution" &&
+                              "EXERCISE CAUTION - MODERATE RISK"}
+                            {advisory.severity === "ok" &&
+                              "SAFE TO SAIL - FAVORABLE CONDITIONS"}
+                          </div>
+                          <p
+                            className={`text-sm leading-relaxed ${
+                              advisory.severity === "danger"
+                                ? "text-red-200"
+                                : advisory.severity === "caution"
+                                ? "text-amber-200"
+                                : "text-green-200"
+                            }`}
+                          >
+                            {advisory.message}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Right Column - Alerts & Safety */}
-          <div className="space-y-6">
-            {/* Enhanced Marine Alerts */}
-            <div className="bg-[#1e1e1e] rounded-xl overflow-hidden">
-              {renderCompactAlertsHeader()}
-              {expandedAlert && renderExpandedAlertsContent()}
-            </div>
-
-            {/* Notification Alert Component */}
-            <NotificationAlert adminAlerts={adminAlerts} autoRefresh={true} />
+          <div className="order-1 space-y-6 lg:col-start-3 lg:row-start-1 lg:order-2">
             {/* Rescue Requests */}
             <div className="p-6 bg-[#1e1e1e] rounded-xl">
               <div className="mb-4">
@@ -1397,426 +1544,117 @@ export default function DashboardPage() {
                   </span>
                 </div>
               </div>
-              <div className="space-y-4 overflow-y-auto max-h-60 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-[#0f0f0f] [&::-webkit-scrollbar-track]:rounded-full">
-                {rescueRequests.length > 0 ? (
-                  rescueRequests.slice(0, 5).map((request) => (
-                    <div
-                      key={request.id}
-                      className={`p-3 rounded-lg text-sm w-full max-w-[58vh] mx-auto ${
-                        request.status === "pending"
-                          ? "bg-red-900/50"
-                          : "bg-[#272727]"
-                      }`}
-                    >
-                      <div className="font-medium text-white">
-                        {request.reason
-                          ?.toString()
-                          .replace(/_/g, " ")
-                          .toUpperCase() || "EMERGENCY"}
-                      </div>
-                      <div className="text-xs text-gray-300">
-                        <MapPin className="inline w-3 h-3 mr-1" />
-                        {request.latitude?.toFixed(2)}°N,{" "}
-                        {request.longitude?.toFixed(2)}°E
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {new Date(request.timestamp).toLocaleString()}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center text-gray-400">
-                    No rescue requests
+            </div>
+
+            {/* Current Weather Card */}
+            <div className="p-6 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] rounded-2xl  border-white/10 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    Current weather
+                  </h3>
+                  <p className="text-sm text-gray-400">
+                    {new Date().toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="text-5xl font-bold text-white">
+                    {formatValue(weatherData?.current?.temperature_2m, "°", 0)}
                   </div>
-                )}
+                  <div>
+                    <div className="text-lg font-medium text-white">
+                      {weatherData
+                        ? getWeatherDescription(
+                            weatherData.current.weather_code
+                          )
+                        : "--"}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      Feels like{" "}
+                      {formatValue(
+                        weatherData?.current?.apparent_temperature ||
+                          weatherData?.current?.temperature_2m,
+                        "°",
+                        0
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-4xl">
+                  {weatherData &&
+                    getWeatherIcon(
+                      weatherData.current.weather_code,
+                      weatherData.current.is_day
+                    )}
+                </div>
               </div>
             </div>
 
-            {/* Safety Index - Modern Gauge Design */}
-            <div className="p-6 bg-gradient-to-br from-[#1a1a1a] to-[#2d2d2d] rounded-2xl border border-white/10 shadow-xl">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-500/20 rounded-lg">
-                    <Gauge className="w-6 h-6 text-blue-400" />
+            {/* Wind Speed Card */}
+            <div className="p-6 bg-[#1e1e1e] rounded-xl">
+              <div className="flex items-center gap-3 mb-4">
+                <Wind className="w-8 h-8 text-blue-400" />
+                <div>
+                  <h3 className="font-bold text-white">Wind Speed</h3>
+                  <p className="text-2xl font-bold text-white">
+                    {formatValue(
+                      weatherData?.current?.wind_speed_10m,
+                      " km/h",
+                      0
+                    )}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-400">South Coast 21 km/h</p>
+            </div>
+
+            {/* Enhanced Marine Alerts */}
+            {/* Enhanced Marine Alerts - Always Expanded */}
+            <div className="bg-[#1e1e1e] rounded-xl overflow-hidden">
+              {/* Static Header (non-clickable) */}
+              <div className="flex items-center justify-between p-3">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="flex items-center justify-center w-6 h-6 text-xs border-2 rounded-full"
+                    style={{
+                      backgroundColor: severityConfig.bgColor,
+                      color: severityConfig.color,
+                      borderColor: severityConfig.borderColor,
+                    }}
+                  >
+                    {severityConfig.icon}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white">
-                      Marine Safety Index
-                    </h3>
-                    <p className="text-sm text-gray-400">
-                      Real-time conditions assessment
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-400">Last Updated</div>
-                  <div className="text-sm font-medium text-white">
-                    {new Date().toLocaleTimeString()}
-                  </div>
-                </div>
-              </div>
-
-              {/* Main Gauge Section */}
-              <div className="relative mb-8">
-                {/* Gauge Container */}
-                <div className="relative w-full h-40 mb-2">
-                  <svg viewBox="0 0 200 120" className="w-full h-full">
-                    {/* Background Track */}
-                    <path
-                      d="M 25 100 A 75 75 0 0 1 175 100"
-                      fill="none"
-                      stroke="#374151"
-                      strokeWidth="16"
-                      strokeLinecap="round"
-                      opacity="0.3"
-                    />
-
-                    {/* Active Fill */}
-                    <path
-                      d="M 25 100 A 75 75 0 0 1 175 100"
-                      fill="none"
-                      stroke="url(#gaugeGradient)"
-                      strokeWidth="16"
-                      strokeLinecap="round"
-                      strokeDasharray="235.5"
-                      strokeDashoffset={
-                        235.5 - ((safetyIndex?.score || 0) / 10) * 235.5
-                      }
-                      className="transition-all duration-1500 ease-out"
-                    />
-
-                    {/* Gradient Definition */}
-                    <defs>
-                      <linearGradient
-                        id="gaugeGradient"
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="0%"
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-white">
+                        Marine Safety
+                      </span>
+                      <span
+                        className="px-2 py-0.5 text-xs font-bold rounded-full"
+                        style={{
+                          backgroundColor: severityConfig.color,
+                          color: "white",
+                        }}
                       >
-                        <stop offset="0%" stopColor="#ef4444" />
-                        <stop offset="25%" stopColor="#f59e0b" />
-                        <stop offset="50%" stopColor="#eab308" />
-                        <stop offset="75%" stopColor="#3b82f6" />
-                        <stop offset="100%" stopColor="#10b981" />
-                      </linearGradient>
-                    </defs>
-
-                    {/* Needle */}
-                    <g
-                      transform={`rotate(${
-                        -90 + (safetyIndex?.score || 0) * 18
-                      } 100 100)`}
-                      className="transition-transform duration-1500 ease-out"
-                    >
-                      <line
-                        x1="100"
-                        y1="100"
-                        x2="100"
-                        y2="30"
-                        stroke="white"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        filter="drop-shadow(0 0 2px rgba(255,255,255,0.5))"
-                      />
-                      <circle
-                        cx="100"
-                        cy="100"
-                        r="10"
-                        fill="#1a1a1a"
-                        stroke="white"
-                        strokeWidth="2"
-                      />
-                      <circle cx="100" cy="100" r="4" fill="white" />
-                    </g>
-
-                    {/* Danger Markers */}
-                    {[0, 2, 4, 6, 8, 10].map((mark, index) => (
-                      <g
-                        key={mark}
-                        transform={`rotate(${-90 + mark * 18} 100 100)`}
-                      >
-                        <line
-                          x1="100"
-                          y1="25"
-                          x2="100"
-                          y2={index % 2 === 0 ? "35" : "30"}
-                          stroke="white"
-                          strokeWidth={index % 2 === 0 ? "2" : "1"}
-                          strokeOpacity="0.5"
-                        />
-                      </g>
-                    ))}
-                  </svg>
-
-                  {/* Scale Labels */}
-                  <div className="absolute inset-0 flex items-end justify-between px-6 pb-1">
-                    {[0, 5, 10].map((label) => (
-                      <div key={label} className="flex flex-col items-center">
-                        <span className="text-xs font-medium text-gray-400">
-                          {label}
-                        </span>
-                        <div className="w-px h-2 bg-gray-600 mt-1"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Center Score Display */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-center -mt-8">
-                    <div className="inline-flex flex-col items-center px-8 py-4 bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] rounded-2xl border border-white/20 shadow-2xl backdrop-blur-sm">
-                      <div className="text-4xl font-black text-white mb-1">
-                        {safetyIndex?.score || "--"}
-                        <span className="text-lg font-semibold text-gray-400 ml-1">
-                          /10
-                        </span>
-                      </div>
-                      <div
-                        className={`px-3 py-1 rounded-full text-sm font-bold ${
-                          (safetyIndex?.score || 0) >= 8
-                            ? "bg-green-500/20 text-green-300"
-                            : (safetyIndex?.score || 0) >= 6
-                            ? "bg-blue-500/20 text-blue-300"
-                            : (safetyIndex?.score || 0) >= 4
-                            ? "bg-yellow-500/20 text-yellow-300"
-                            : "bg-red-500/20 text-red-300"
-                        }`}
-                      >
-                        {safetyIndex?.level || "Loading..."}
-                      </div>
+                        {severityConfig.label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                      <Clock className="w-3 h-3" />
+                      <span>Live conditions</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Conditions Breakdown */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">
-                  CONDITIONS BREAKDOWN
-                </h4>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    {
-                      key: "wind",
-                      icon: Wind,
-                      color: "text-blue-400",
-                      bgColor: "bg-blue-500/20",
-                      label: "Wind",
-                    },
-                    {
-                      key: "waves",
-                      icon: Waves,
-                      color: "text-cyan-400",
-                      bgColor: "bg-cyan-500/20",
-                      label: "Waves",
-                    },
-                    {
-                      key: "weather",
-                      icon: Cloud,
-                      color: "text-gray-400",
-                      bgColor: "bg-gray-500/20",
-                      label: "Weather",
-                    },
-                  ].map(
-                    ({ key, icon: Icon, color, bgColor, label }) =>
-                      safetyIndex?.details?.[key] && (
-                        <div
-                          key={key}
-                          className="p-4 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300"
-                        >
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className={`p-2 rounded-lg ${bgColor}`}>
-                              <Icon className={`w-4 h-4 ${color}`} />
-                            </div>
-                            <div className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                              {label}
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-2xl font-bold text-white">
-                              {Math.round(safetyIndex.details[key].score)}%
-                            </div>
-                            <div className="text-xs text-gray-500 font-medium">
-                              {safetyIndex.details[key].level}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                  )}
-                </div>
-              </div>
-
-              {/* Advisory Section */}
-              {advisory.severity !== "unknown" && (
-                <div className="mb-6">
-                  <div
-                    className={`p-4 rounded-xl border-l-4 backdrop-blur-sm ${
-                      advisory.severity === "danger"
-                        ? "bg-gradient-to-r from-red-900/30 to-red-800/10 border-l-red-500"
-                        : advisory.severity === "caution"
-                        ? "bg-gradient-to-r from-amber-900/30 to-amber-800/10 border-l-amber-500"
-                        : "bg-gradient-to-r from-green-900/30 to-green-800/10 border-l-green-500"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          advisory.severity === "danger"
-                            ? "bg-red-500/20"
-                            : advisory.severity === "caution"
-                            ? "bg-amber-500/20"
-                            : "bg-green-500/20"
-                        }`}
-                      >
-                        {advisory.severity === "danger" && (
-                          <AlertTriangle className="w-5 h-5 text-red-400" />
-                        )}
-                        {advisory.severity === "caution" && (
-                          <AlertTriangle className="w-5 h-5 text-amber-400" />
-                        )}
-                        {advisory.severity === "ok" && (
-                          <div className="w-5 h-5 text-green-400">✓</div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div
-                          className={`text-sm font-bold mb-1 ${
-                            advisory.severity === "danger"
-                              ? "text-red-300"
-                              : advisory.severity === "caution"
-                              ? "text-amber-300"
-                              : "text-green-300"
-                          }`}
-                        >
-                          {advisory.severity === "danger" &&
-                            "DO NOT SAIL - CONDITIONS DANGEROUS"}
-                          {advisory.severity === "caution" &&
-                            "EXERCISE CAUTION - MODERATE RISK"}
-                          {advisory.severity === "ok" &&
-                            "SAFE TO SAIL - FAVORABLE CONDITIONS"}
-                        </div>
-                        <p
-                          className={`text-sm leading-relaxed ${
-                            advisory.severity === "danger"
-                              ? "text-red-200"
-                              : advisory.severity === "caution"
-                              ? "text-amber-200"
-                              : "text-green-200"
-                          }`}
-                        >
-                          {advisory.message}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Activity Safety */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">
-                  ACTIVITY SAFETY
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    {
-                      type: "fishing",
-                      icon: Anchor,
-                      label: "Fishing",
-                      safety: getFishingSafety,
-                      safeColors:
-                        "from-green-500/20 to-green-600/10 border-green-500/30",
-                      dangerColors:
-                        "from-red-500/20 to-red-600/10 border-red-500/30",
-                    },
-                    {
-                      type: "commercial",
-                      icon: Ship,
-                      label: "Commercial",
-                      safety: getCommercialSafety,
-                      safeColors:
-                        "from-blue-500/20 to-blue-600/10 border-blue-500/30",
-                      dangerColors:
-                        "from-red-500/20 to-red-600/10 border-red-500/30",
-                    },
-                  ].map(
-                    ({
-                      type,
-                      icon: Icon,
-                      label,
-                      safety,
-                      safeColors,
-                      dangerColors,
-                    }) => (
-                      <div
-                        key={type}
-                        className={`p-4 rounded-xl border backdrop-blur-sm transition-all duration-300 ${
-                          safety.severity === SEVERITY.SAFE ||
-                          safety.severity === SEVERITY.CAUTION
-                            ? safeColors
-                            : dangerColors
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon
-                            className={`w-5 h-5 ${
-                              safety.severity === SEVERITY.SAFE ||
-                              safety.severity === SEVERITY.CAUTION
-                                ? type === "fishing"
-                                  ? "text-green-400"
-                                  : "text-blue-400"
-                                : "text-red-400"
-                            }`}
-                          />
-                          <div className="flex-1">
-                            <div className="text-sm font-semibold text-white">
-                              {label}
-                            </div>
-                            <div
-                              className={`text-xs font-medium ${
-                                safety.severity === SEVERITY.SAFE ||
-                                safety.severity === SEVERITY.CAUTION
-                                  ? type === "fishing"
-                                    ? "text-green-300"
-                                    : "text-blue-300"
-                                  : "text-red-300"
-                              }`}
-                            >
-                              {safety.severity === SEVERITY.SAFE
-                                ? "Good"
-                                : safety.severity === SEVERITY.CAUTION
-                                ? "Careful"
-                                : safety.severity === SEVERITY.WARNING
-                                ? "Risky"
-                                : "Dangerous"}
-                            </div>
-                          </div>
-                          <div
-                            className={`text-lg ${
-                              safety.severity === SEVERITY.SAFE ||
-                              safety.severity === SEVERITY.CAUTION
-                                ? type === "fishing"
-                                  ? "text-green-400"
-                                  : "text-blue-400"
-                                : "text-red-400"
-                            }`}
-                          >
-                            {safety.severity === SEVERITY.SAFE
-                              ? "✓"
-                              : safety.severity === SEVERITY.CAUTION
-                              ? "⚠"
-                              : safety.severity === SEVERITY.WARNING
-                              ? "⚠"
-                              : "⛔"}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
+              {/* Always show expanded content */}
+              {renderExpandedAlertsContent()}
             </div>
           </div>
         </div>

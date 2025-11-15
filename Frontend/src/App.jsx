@@ -19,7 +19,7 @@ import AlertManagement from "./pages/webapp/AlertManagement";
 import ActivityLogs from "./pages/webapp/ActivityLogs";
 import Dashboard from "./pages/webapp/Dashboard";
 import Profile from "./pages/webapp/Profile";
-import RescueButton from "./components/RescueButton";
+import RescueButton from "./pages/webapp/EmergencyRescue";
 import LandingPage from "./pages/weblanding/LandingPage";
 import { AlertProvider } from './contexts/AlertContext';
 import { ActivityLogProvider } from './contexts/ActivityLogContext';
