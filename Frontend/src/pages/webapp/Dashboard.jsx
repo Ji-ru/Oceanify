@@ -1,5 +1,5 @@
 // React core
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 // Components
 import Navbar from "../../components/Navbar";
 // Ports data
@@ -10,20 +10,25 @@ import API from "../../api";
 // Weather hook (provides cached fetch)
 import { useWeatherData } from "../../hooks/useWeatherForecastingData";
 // Lucid React Icons
-import { 
-  Thermometer, 
-  Wind, 
-  Waves, 
-  Compass, 
-  Droplets, 
-  Cloud, 
-  Gauge, 
-  Eye, 
-  Sun, 
+import {
+  Thermometer,
+  Wind,
+  Waves,
+  Compass,
+  Droplets,
+  Cloud,
+  Gauge,
+  Eye,
+  Sun,
   Moon,
   AlertTriangle,
   Bell,
-  MapPin
+  MapPin,
+  Anchor,
+  Ship,
+  Clock,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 // Coordinate Formatter
@@ -31,7 +36,10 @@ import { useFormattedCoordinates } from "../../hooks/useFormattedCoords";
 
 // Caching in Local Storage
 import { useLocalStorage } from "../../hooks/useLocalStorage";
-
+import {
+  SEVERITY,
+  getSeverityConfig,
+} from "../../services/weatherAlertService";
 /**
  * Marine Dashboard - Main weather and safety monitoring interface
  * Displays current marine conditions, weather data, and rescue alerts
@@ -51,6 +59,10 @@ export default function DashboardPage() {
   const [portLoading, setPortLoading] = useState(false);
   const [rescueNotifications, setRescueNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Add these two lines for marine alerts:
+  const [expandedAlert, setExpandedAlert] = useState(false);
+  const [selectedAlertTab, setSelectedAlertTab] = useState("overview");
 
   // New: live rescue requests and admin alerts
   const [rescueRequests, setRescueRequests] = useState([]);
@@ -324,6 +336,117 @@ export default function DashboardPage() {
     if (score >= 20) return "Poor";
     return "Dangerous";
   };
+
+  // Add these functions before getSafetyIndex():
+
+  // Analyze current conditions for fishing safety
+  const getFishingSafety = useMemo(() => {
+    if (!weatherData || !waveData)
+      return { severity: SEVERITY.SAFE, recommendations: [] };
+
+    const wind = weatherData.current?.wind_speed_10m ?? 0;
+    const waves = waveData.current?.wave_height ?? 0;
+    const weatherCode = weatherData.current?.weather_code ?? 0;
+
+    let severity = SEVERITY.SAFE;
+    const recommendations = [];
+
+    // Danger conditions for small fishing boats
+    if (waves >= 2.0 || wind >= 45 || [95, 96, 99].includes(weatherCode)) {
+      severity = SEVERITY.DANGER;
+      recommendations.push(
+        "⛔ DO NOT SAIL - Conditions dangerous for small boats"
+      );
+      recommendations.push("Seek immediate shelter if at sea");
+    }
+    // Warning conditions
+    else if (waves >= 1.5 || wind >= 35 || [82, 65].includes(weatherCode)) {
+      severity = SEVERITY.WARNING;
+      recommendations.push("⚠️ NOT RECOMMENDED - Hazardous for fishing");
+      recommendations.push("Only experienced crews with proper equipment");
+    }
+    // Caution conditions
+    else if (waves >= 1.0 || wind >= 25 || [63, 61, 53].includes(weatherCode)) {
+      severity = SEVERITY.CAUTION;
+      recommendations.push("⚠️ CAUTION ADVISED - Exercise care");
+      recommendations.push("Stay close to shore and monitor weather");
+    }
+    // Safe conditions
+    else {
+      recommendations.push("✓ Generally safe for fishing");
+      recommendations.push("Maintain standard safety precautions");
+    }
+
+    return { severity, recommendations: recommendations.slice(0, 3) };
+  }, [weatherData, waveData]);
+
+  // Analyze current conditions for commercial sailing
+  const getCommercialSafety = useMemo(() => {
+    if (!weatherData || !waveData)
+      return { severity: SEVERITY.SAFE, recommendations: [] };
+
+    const wind = weatherData.current?.wind_speed_10m ?? 0;
+    const waves = waveData.current?.wave_height ?? 0;
+    const gusts = weatherData.current?.wind_gusts_10m ?? 0;
+
+    let severity = SEVERITY.SAFE;
+    const recommendations = [];
+
+    // Danger conditions for commercial vessels
+    if (waves >= 4.0 || wind >= 60 || gusts >= 80) {
+      severity = SEVERITY.DANGER;
+      recommendations.push("⚠️ EXTREME CAUTION - Hazardous conditions");
+      recommendations.push("Consider delaying departure if possible");
+    }
+    // Warning conditions
+    else if (waves >= 2.5 || wind >= 45 || gusts >= 60) {
+      severity = SEVERITY.WARNING;
+      recommendations.push("⚠️ PROCEED WITH CAUTION - Challenging conditions");
+      recommendations.push("Reduce speed and maintain safe distances");
+    }
+    // Caution conditions
+    else if (waves >= 1.5 || wind >= 35) {
+      severity = SEVERITY.CAUTION;
+      recommendations.push("⚠️ MINOR CAUTION - Some challenging conditions");
+      recommendations.push("Maintain normal safety protocols");
+    }
+    // Safe conditions
+    else {
+      recommendations.push("✓ Conditions favorable for sailing");
+      recommendations.push("Maintain standard operational procedures");
+    }
+
+    return { severity, recommendations: recommendations.slice(0, 3) };
+  }, [weatherData, waveData]);
+
+  // Get overall severity for alerts header
+  const overallSeverity = useMemo(() => {
+    const fishingSeverity = getFishingSafety.severity;
+    const commercialSeverity = getCommercialSafety.severity;
+
+    if (
+      fishingSeverity === SEVERITY.DANGER ||
+      commercialSeverity === SEVERITY.DANGER
+    ) {
+      return SEVERITY.DANGER;
+    }
+    if (
+      fishingSeverity === SEVERITY.WARNING ||
+      commercialSeverity === SEVERITY.WARNING
+    ) {
+      return SEVERITY.WARNING;
+    }
+    if (
+      fishingSeverity === SEVERITY.CAUTION ||
+      commercialSeverity === SEVERITY.CAUTION
+    ) {
+      return SEVERITY.CAUTION;
+    }
+    return SEVERITY.SAFE;
+  }, [getFishingSafety, getCommercialSafety]);
+
+  const severityConfig = getSeverityConfig(overallSeverity);
+
   /**
    * Calculate marine safety index based on conditions
    * Uses Beaufort Scale for wind and Douglas Sea Scale for waves
@@ -438,6 +561,283 @@ export default function DashboardPage() {
 
   const safetyIndex = getSafetyIndex();
   const advisory = getSeaAdvisory();
+
+  // Render compact marine alerts header
+  const renderCompactAlertsHeader = () => (
+    <div
+      className="flex items-center justify-between p-3 cursor-pointer"
+      onClick={() => setExpandedAlert(!expandedAlert)}
+    >
+      <div className="flex items-center gap-2">
+        <div
+          className="flex items-center justify-center w-6 h-6 text-xs border-2 rounded-full"
+          style={{
+            backgroundColor: severityConfig.bgColor,
+            color: severityConfig.color,
+            borderColor: severityConfig.borderColor,
+          }}
+        >
+          {severityConfig.icon}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-white">
+              Marine Safety
+            </span>
+            <span
+              className="px-2 py-0.5 text-xs font-bold rounded-full"
+              style={{ backgroundColor: severityConfig.color, color: "white" }}
+            >
+              {severityConfig.label}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <Clock className="w-3 h-3" />
+            <span>Live conditions</span>
+          </div>
+        </div>
+      </div>
+      {expandedAlert ? (
+        <ChevronUp className="w-4 h-4 text-white" />
+      ) : (
+        <ChevronDown className="w-4 h-4 text-white" />
+      )}
+    </div>
+  );
+
+  // Render expanded marine alerts content
+  const renderExpandedAlertsContent = () => (
+    <div className="p-3 border-t border-gray-700">
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 mb-4 rounded-lg bg-[#272727]">
+        {[
+          { id: "overview", label: "Overview", icon: MapPin },
+          { id: "fishing", label: "Fishing", icon: Anchor },
+          { id: "commercial", label: "Commercial", icon: Ship },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = selectedAlertTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setSelectedAlertTab(tab.id)}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all duration-200 flex-1 justify-center ${
+                isActive
+                  ? "bg-blue-500 text-white shadow"
+                  : "text-gray-400 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab Content */}
+      <div className="space-y-3">
+        {selectedAlertTab === "overview" && (
+          <div className="space-y-3">
+            {/* Current Location Summary */}
+            <div className="p-3 rounded-lg bg-[#272727] border border-gray-600">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4 text-blue-400" />
+                <div>
+                  <div className="text-sm font-semibold text-white">
+                    {selectedPort ? selectedPort.port_name : "Your Location"}
+                  </div>
+                  <div className="text-xs text-gray-400">{formattedCoords}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <div className="text-gray-400">Weather</div>
+                  <div className="font-medium text-white">
+                    {weatherData
+                      ? getWeatherDescription(weatherData.current.weather_code)
+                      : "--"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-400">Wind</div>
+                  <div className="font-medium text-white">
+                    {formatValue(
+                      weatherData?.current?.wind_speed_10m,
+                      " km/h",
+                      0
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-400">Waves</div>
+                  <div className="font-medium text-white">
+                    {formatValue(waveData?.current?.wave_height, " m", 1)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-400">Swell</div>
+                  <div className="font-medium text-white">
+                    {formatValue(waveData?.current?.swell_wave_height, " m", 1)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Safety Status */}
+            <div className="grid grid-cols-2 gap-2">
+              <div
+                className={`p-2 text-center rounded border ${
+                  getFishingSafety.severity === SEVERITY.DANGER
+                    ? "border-red-500 bg-red-500/10"
+                    : getFishingSafety.severity === SEVERITY.WARNING
+                    ? "border-orange-500 bg-orange-500/10"
+                    : getFishingSafety.severity === SEVERITY.CAUTION
+                    ? "border-yellow-500 bg-yellow-500/10"
+                    : "border-green-500 bg-green-500/10"
+                }`}
+              >
+                <div className="text-lg font-bold text-white">
+                  {getFishingSafety.severity === SEVERITY.DANGER
+                    ? "⛔"
+                    : getFishingSafety.severity === SEVERITY.WARNING
+                    ? "⚠️"
+                    : getFishingSafety.severity === SEVERITY.CAUTION
+                    ? "⚠️"
+                    : "✓"}
+                </div>
+                <div className="text-xs text-gray-300">Fishing</div>
+              </div>
+              <div
+                className={`p-2 text-center rounded border ${
+                  getCommercialSafety.severity === SEVERITY.DANGER
+                    ? "border-red-500 bg-red-500/10"
+                    : getCommercialSafety.severity === SEVERITY.WARNING
+                    ? "border-orange-500 bg-orange-500/10"
+                    : getCommercialSafety.severity === SEVERITY.CAUTION
+                    ? "border-yellow-500 bg-yellow-500/10"
+                    : "border-green-500 bg-green-500/10"
+                }`}
+              >
+                <div className="text-lg font-bold text-white">
+                  {getCommercialSafety.severity === SEVERITY.DANGER
+                    ? "⛔"
+                    : getCommercialSafety.severity === SEVERITY.WARNING
+                    ? "⚠️"
+                    : getCommercialSafety.severity === SEVERITY.CAUTION
+                    ? "⚠️"
+                    : "✓"}
+                </div>
+                <div className="text-xs text-gray-300">Commercial</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedAlertTab === "fishing" && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Anchor className="w-4 h-4 text-blue-400" />
+              <h3 className="text-sm font-semibold text-white">
+                Fishing Vessels
+              </h3>
+            </div>
+
+            <div
+              className="p-3 border rounded-lg"
+              style={{
+                backgroundColor: getSeverityConfig(getFishingSafety.severity)
+                  .bgColor,
+                borderColor: getSeverityConfig(getFishingSafety.severity)
+                  .borderColor,
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">
+                  {getSeverityConfig(getFishingSafety.severity).icon}
+                </span>
+                <span
+                  className="text-sm font-bold"
+                  style={{
+                    color: getSeverityConfig(getFishingSafety.severity).color,
+                  }}
+                >
+                  {getSeverityConfig(getFishingSafety.severity).label}
+                </span>
+              </div>
+
+              <ul className="space-y-1 text-xs">
+                {getFishingSafety.recommendations.map((rec, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start gap-1.5"
+                    style={{
+                      color: getSeverityConfig(getFishingSafety.severity).color,
+                    }}
+                  >
+                    <span>•</span>
+                    <span className="leading-relaxed">{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {selectedAlertTab === "commercial" && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Ship className="w-4 h-4 text-blue-400" />
+              <h3 className="text-sm font-semibold text-white">
+                Commercial Vessels
+              </h3>
+            </div>
+
+            <div
+              className="p-3 border rounded-lg"
+              style={{
+                backgroundColor: getSeverityConfig(getCommercialSafety.severity)
+                  .bgColor,
+                borderColor: getSeverityConfig(getCommercialSafety.severity)
+                  .borderColor,
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">
+                  {getSeverityConfig(getCommercialSafety.severity).icon}
+                </span>
+                <span
+                  className="text-sm font-bold"
+                  style={{
+                    color: getSeverityConfig(getCommercialSafety.severity)
+                      .color,
+                  }}
+                >
+                  {getSeverityConfig(getCommercialSafety.severity).label}
+                </span>
+              </div>
+
+              <ul className="space-y-1 text-xs">
+                {getCommercialSafety.recommendations.map((rec, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start gap-1.5"
+                    style={{
+                      color: getSeverityConfig(getCommercialSafety.severity)
+                        .color,
+                    }}
+                  >
+                    <span>•</span>
+                    <span className="leading-relaxed">{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   // Derived simple counts for UI
   const pendingRescueCount = rescueRequests.filter(
@@ -636,7 +1036,7 @@ export default function DashboardPage() {
                     {
                       label: "Primary Swell Direction",
                       value: degToCompass(waveData?.current?.wave_direction),
-                      icon: <Compass className="w-4 h-4" />
+                      icon: <Compass className="w-4 h-4" />,
                     },
                     {
                       label: "Secondary Swell Height",
@@ -739,12 +1139,18 @@ export default function DashboardPage() {
 
           {/* Right Column - Alerts & Safety */}
           <div className="space-y-6">
-            {/* Marine Alerts */}
+            {/* Enhanced Marine Alerts */}
+            <div className="bg-[#1e1e1e] rounded-xl overflow-hidden">
+              {renderCompactAlertsHeader()}
+              {expandedAlert && renderExpandedAlertsContent()}
+            </div>
+
+            {/* Admin Alerts (keep this separate) */}
             <div className="p-6 bg-[#1e1e1e] rounded-xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="flex items-center gap-2 text-lg font-bold text-white">
                   <AlertTriangle className="w-5 h-5 text-red-400" />
-                  Marine Alerts
+                  Admin Alerts
                 </h3>
                 <span className="px-2 py-1 text-xs text-white bg-red-500 rounded">
                   {adminAlerts.length} Active
@@ -769,7 +1175,6 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-
             {/* Rescue Requests */}
             <div className="p-6 bg-[#1e1e1e] rounded-xl">
               <div className="mb-4">
@@ -850,8 +1255,12 @@ export default function DashboardPage() {
                         : "bg-green-900/30 text-green-200 border border-green-700/40"
                     }`}
                   >
-                    {advisory.severity === "danger" && <AlertTriangle className="inline w-3 h-3 mr-1" />}
-                    {advisory.severity === "caution" && <AlertTriangle className="inline w-3 h-3 mr-1" />}
+                    {advisory.severity === "danger" && (
+                      <AlertTriangle className="inline w-3 h-3 mr-1" />
+                    )}
+                    {advisory.severity === "caution" && (
+                      <AlertTriangle className="inline w-3 h-3 mr-1" />
+                    )}
                     {advisory.severity === "ok" && "✅ "}
                     {advisory.message}
                   </div>
