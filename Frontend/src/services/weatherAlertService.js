@@ -1,4 +1,4 @@
-import { fetchCurrentWeather, fetchWaveData } from "../utils/weatherAPI";
+import { fetchCurrentWeather, fetchWaveData } from "../utils/weatherAPI.js";
 import { getWeatherDescription } from "../utils/weatherUtils";
 
 // Enhanced thresholds for different vessel types
