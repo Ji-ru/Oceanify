@@ -3,7 +3,7 @@ import {
   fetchCurrentWeather,
   fetchForecastData,
   fetchWaveData,
-} from "../utils/weatherAPI.js";
+} from "../utils/weatherAPI";
 import { getWeatherDescription, getWeatherIcon } from "../utils/weatherUtils";
 
 export const useWeatherData = () => {
