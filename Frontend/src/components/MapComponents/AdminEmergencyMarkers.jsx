@@ -27,13 +27,16 @@ export default function AdminEmergencyMarkers({ mapRef }) {
         if (error) throw error;
         if (!data?.length) return;
 
-        setRescueRequests(data);
+        // Filter out acknowledged requests - only show pending ones
+        const pendingRequests = data.filter(req => req.status === 'pending');
+        setRescueRequests(pendingRequests);
 
         // Remove old markers
         markers.forEach((m) => mapRef.current?.removeLayer?.(m));
         markers = [];
 
-        data.forEach((req) => {
+        // Only create markers for pending requests
+        pendingRequests.forEach((req) => {
           if (!req.latitude || !req.longitude) return;
 
           const iconHtml = `<div style="
@@ -71,11 +74,51 @@ export default function AdminEmergencyMarkers({ mapRef }) {
                   req.timestamp
                 ).toLocaleString()}</div>
                 <div class="mt-2 text-xs text-yellow-200">Status: ${req.status.toUpperCase()}</div>
+                <div class="mt-3 flex gap-2">
+                  <button onclick="handleAcknowledgeRescue('${req.id}')" 
+                    class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg transition-colors">
+                    Acknowledge
+                  </button>
+                  <button onclick="handleViewDetails('${req.id}')" 
+                    class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors">
+                    View Details
+                  </button>
+                </div>
               </div>`
             );
 
           markers.push(marker);
         });
+
+        // Add global functions for button clicks
+        window.handleAcknowledgeRescue = async (rescueId) => {
+          try {
+            const { error } = await supabase
+              .from('rescue_requests')
+              .update({ status: 'acknowledged' })
+              .eq('id', rescueId);
+
+            if (error) throw error;
+            
+            // Refresh the markers after acknowledgment
+            fetchRescueRequests();
+            
+            // Close the popup
+            marker.closePopup();
+            
+          } catch (err) {
+            console.error('Error acknowledging rescue:', err);
+            alert('Failed to acknowledge rescue request');
+          }
+        };
+
+        window.handleViewDetails = (rescueId) => {
+          // Navigate to rescue details page or open modal
+          console.log('View details for:', rescueId);
+          // You can implement navigation or modal opening here
+          window.location.href = `/admin/rescue/${rescueId}`;
+        };
+
       } catch (err) {
         console.error("Error fetching rescue requests:", err);
       }
@@ -97,6 +140,10 @@ export default function AdminEmergencyMarkers({ mapRef }) {
       // Cleanup
       markers.forEach((m) => mapRef.current?.removeLayer?.(m));
       supabase.removeChannel(channel);
+      
+      // Remove global functions
+      window.handleAcknowledgeRescue = undefined;
+      window.handleViewDetails = undefined;
     };
   }, [mapRef, userRole, authLoading]);
 

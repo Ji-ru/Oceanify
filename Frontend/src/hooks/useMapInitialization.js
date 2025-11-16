@@ -6,7 +6,7 @@ export const useMapInitialization = (
   setMapLoaded,
   setShowForecastPanel,
   requestRescueAt,
-  setUserLocation
+  setUserLocation // Add this parameter
 ) => {
   useEffect(() => {
     const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
@@ -94,14 +94,33 @@ export const useMapInitialization = (
         </div>
       `,
             iconSize: [28, 28],
-            iconAnchor: [14, 14], // center the icon
-            className: "", // important: remove default Leaflet classes that add white bg
+            iconAnchor: [14, 14],
+            className: "",
           });
 
           L.marker([latitude, longitude], { icon: userIcon }).addTo(map);
           map.setView([latitude, longitude], 7);
+          
+          // ✅ SET THE USER LOCATION HERE
+          if (setUserLocation) {
+            setUserLocation({
+              lat: latitude,
+              lng: longitude,
+              name: "Your Location"
+            });
+          }
         },
-        (err) => console.warn("Geolocation error:", err),
+        (err) => {
+          console.warn("Geolocation error:", err);
+          // ✅ Set a default location if geolocation fails
+          if (setUserLocation) {
+            setUserLocation({
+              lat: 8.0,
+              lng: 125.0,
+              name: "Default Location"
+            });
+          }
+        },
         { enableHighAccuracy: true, timeout: 10000 }
       );
 
@@ -257,6 +276,7 @@ export const useMapInitialization = (
           popupAnchor: [0, -44],
           className: "custom-map-pin",
         });
+
         // Remove previous marker
         if (markerRef.current && map.hasLayer(markerRef.current)) {
           map.removeLayer(markerRef.current);
@@ -282,5 +302,5 @@ export const useMapInitialization = (
         } catch (e) {}
       }
     };
-  }, []);
+  }, [setUserLocation]); // Add setUserLocation to dependencies
 };

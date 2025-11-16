@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMapInitialization } from "../../hooks/useMapInitialization";
 import { useWeatherData } from "../../hooks/useWeatherForecastingData";
@@ -15,6 +15,7 @@ import Navbar from "../../components/Navbar";
 import MarineVisualizer from "../../marineVisualizer/MarineVisualizer";
 import AdminEmergencyMarkers from "../../components/MapComponents/AdminEmergencyMarkers";
 import WeatherNotificationPanel from "../../components/MapComponents/WeatherNotificationPanel";
+import { useWeatherAlerts } from "../../hooks/useWeatherAlerts";
 
 export default function Maps() {
   const mapRef = useRef(null);
@@ -55,8 +56,28 @@ export default function Maps() {
     setMapLoaded,
     setShowForecastPanel,
     rescueFlow.requestRescueAt,
-    userLocation
+    userLocation,
+    setUserLocation
   );
+
+  // Use the weather alerts hook
+  const { alertSummary, loading: alertsLoading } = useWeatherAlerts({
+    updateInterval: 30 * 60 * 1000,
+    monitorPorts: true,
+    monitorUserLocation: true,
+  });
+
+  // Calculate total maritime alerts count
+  const maritimeAlertsCount = useMemo(() => {
+    if (!alertSummary) return 0;
+
+    // Simply sum danger, warning, and caution alerts
+    return (
+      (alertSummary.danger || 0) +
+      (alertSummary.warning || 0) +
+      (alertSummary.caution || 0)
+    );
+  }, [alertSummary]);
 
   // Handle panel visibility
   useEffect(() => {
@@ -343,7 +364,7 @@ export default function Maps() {
           toggleControlsPanel={toggleControlsPanel}
           toggleAlertsPanel={toggleAlertsPanel}
           toggleWeatherNotification={toggleWeatherNotification}
-          alertsCount={alerts.length}
+          alertsCount={maritimeAlertsCount} // Just the count
         />
 
         {/* Control Panel */}

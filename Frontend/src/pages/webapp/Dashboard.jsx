@@ -67,7 +67,7 @@ export default function DashboardPage() {
 
   // Add these two lines for marine alerts:
 
-  const [selectedAlertTab, setSelectedAlertTab] = useState("overview");
+  const [selectedAlertTab, setSelectedAlertTab] = useState("fishing");
 
   // New: live rescue requests and admin alerts
   const [rescueRequests, setRescueRequests] = useState([]);
@@ -656,10 +656,8 @@ export default function DashboardPage() {
       {/* Tabs */}
       <div className="flex gap-1 p-1 mb-4 rounded-lg bg-[#272727]">
         {[
-          { id: "overview", label: "Overview", icon: MapPin },
           { id: "fishing", label: "Fishing", icon: Anchor },
           { id: "commercial", label: "Commercial", icon: Ship },
-          { id: "ports", label: "Ports", icon: AlertTriangle },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = selectedAlertTab === tab.id;
@@ -682,103 +680,6 @@ export default function DashboardPage() {
 
       {/* Tab Content */}
       <div className="space-y-3">
-        {selectedAlertTab === "overview" && (
-          <div className="space-y-3">
-            {/* Current Location Summary */}
-            <div className="p-3 rounded-lg bg-[#272727]">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-4 h-4 text-blue-400" />
-                <div>
-                  <div className="text-sm font-semibold text-white">
-                    {selectedPort ? selectedPort.port_name : "Your Location"}
-                  </div>
-                  <div className="text-xs text-gray-400">{formattedCoords}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <div className="text-gray-400">Weather</div>
-                  <div className="font-medium text-white">
-                    {weatherData
-                      ? getWeatherDescription(weatherData.current.weather_code)
-                      : "--"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-400">Wind</div>
-                  <div className="font-medium text-white">
-                    {formatValue(
-                      weatherData?.current?.wind_speed_10m,
-                      " km/h",
-                      0
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-400">Waves</div>
-                  <div className="font-medium text-white">
-                    {formatValue(waveData?.current?.wave_height, " m", 1)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-400">Swell</div>
-                  <div className="font-medium text-white">
-                    {formatValue(waveData?.current?.swell_wave_height, " m", 1)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Safety Status */}
-            <div className="grid grid-cols-2 gap-2">
-              <div
-                className={`p-2 text-center rounded ${
-                  getFishingSafety.severity === SEVERITY.DANGER
-                    ? "border-red-500 bg-red-500/10"
-                    : getFishingSafety.severity === SEVERITY.WARNING
-                    ? "border-orange-500 bg-orange-500/10"
-                    : getFishingSafety.severity === SEVERITY.CAUTION
-                    ? "border-yellow-500 bg-yellow-500/10"
-                    : "border-green-500 bg-green-500/10"
-                }`}
-              >
-                <div className="text-lg font-bold text-white">
-                  {getFishingSafety.severity === SEVERITY.DANGER
-                    ? "⛔"
-                    : getFishingSafety.severity === SEVERITY.WARNING
-                    ? "⚠️"
-                    : getFishingSafety.severity === SEVERITY.CAUTION
-                    ? "⚠️"
-                    : "✓"}
-                </div>
-                <div className="text-xs text-gray-300">Fishing</div>
-              </div>
-              <div
-                className={`p-2 text-center rounded ${
-                  getCommercialSafety.severity === SEVERITY.DANGER
-                    ? "border-red-500 bg-red-500/10"
-                    : getCommercialSafety.severity === SEVERITY.WARNING
-                    ? "border-orange-500 bg-orange-500/10"
-                    : getCommercialSafety.severity === SEVERITY.CAUTION
-                    ? "border-yellow-500 bg-yellow-500/10"
-                    : "border-green-500 bg-green-500/10"
-                }`}
-              >
-                <div className="text-lg font-bold text-white">
-                  {getCommercialSafety.severity === SEVERITY.DANGER
-                    ? "⛔"
-                    : getCommercialSafety.severity === SEVERITY.WARNING
-                    ? "⚠️"
-                    : getCommercialSafety.severity === SEVERITY.CAUTION
-                    ? "⚠️"
-                    : "✓"}
-                </div>
-                <div className="text-xs text-gray-300">Commercial</div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {selectedAlertTab === "fishing" && (
           <div className="space-y-3">
@@ -878,120 +779,6 @@ export default function DashboardPage() {
                   </li>
                 ))}
               </ul>
-            </div>
-          </div>
-        )}
-        {selectedAlertTab === "ports" && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-3 ">
-              <AlertTriangle className="w-4 h-4 text-blue-400" />
-              <h3 className="text-sm font-semibold text-white">
-                Port Conditions
-              </h3>
-            </div>
-
-            <div className="space-y-2 overflow-y-auto max-h-60 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-[#0f0f0f] [&::-webkit-scrollbar-track]:rounded-full">
-              {getPortsAnalysis.map((port, index) => {
-                const portConfig = getSeverityConfig(port.severity);
-                return (
-                  <div
-                    key={index}
-                    className="p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.02] text-xs backdrop-blur-sm"
-                    style={{
-                      backgroundColor: portConfig.bgColor,
-                      borderColor: portConfig.borderColor,
-                    }}
-                    onClick={() => handlePortChange(port)}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span
-                        className="font-semibold truncate"
-                        style={{ color: portConfig.color }}
-                      >
-                        {port.port_name}
-                      </span>
-                      <span className="flex-shrink-0 ml-1 text-lg">
-                        {portConfig.icon}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span
-                        style={{ color: portConfig.color }}
-                        className="font-medium"
-                      >
-                        {port.status}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {port.location}
-                      </span>
-                    </div>
-                    {port.issues.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {port.issues.map((issue, i) => (
-                          <div key={i} className="flex items-start gap-1">
-                            <span style={{ color: portConfig.color }}>•</span>
-                            <span
-                              style={{ color: portConfig.color }}
-                              className="text-xs leading-tight"
-                            >
-                              {issue}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {getPortsAnalysis.length === 0 && (
-                <div className="py-4 text-xs text-center text-gray-400">
-                  No port data available
-                </div>
-              )}
-            </div>
-
-            {/* Quick Ports Summary */}
-            <div className="grid grid-cols-4 gap-2 pt-2">
-              <div className="p-2 text-center border border-green-500 rounded bg-green-500/10">
-                <div className="text-lg font-bold text-green-400">
-                  {
-                    getPortsAnalysis.filter((p) => p.severity === SEVERITY.SAFE)
-                      .length
-                  }
-                </div>
-                <div className="text-xs text-green-300">Operational</div>
-              </div>
-              <div className="p-2 text-center border border-yellow-500 rounded bg-yellow-500/10">
-                <div className="text-lg font-bold text-yellow-400">
-                  {
-                    getPortsAnalysis.filter(
-                      (p) => p.severity === SEVERITY.CAUTION
-                    ).length
-                  }
-                </div>
-                <div className="text-xs text-yellow-300">Advisory</div>
-              </div>
-              <div className="p-2 text-center border border-orange-500 rounded bg-orange-500/10">
-                <div className="text-lg font-bold text-orange-400">
-                  {
-                    getPortsAnalysis.filter(
-                      (p) => p.severity === SEVERITY.WARNING
-                    ).length
-                  }
-                </div>
-                <div className="text-xs text-orange-300">Caution</div>
-              </div>
-              <div className="p-2 text-center border border-red-500 rounded bg-red-500/10">
-                <div className="text-lg font-bold text-red-400">
-                  {
-                    getPortsAnalysis.filter(
-                      (p) => p.severity === SEVERITY.DANGER
-                    ).length
-                  }
-                </div>
-                <div className="text-xs text-red-300">Danger</div>
-              </div>
             </div>
           </div>
         )}
