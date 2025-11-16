@@ -6,7 +6,7 @@ export const useMapInitialization = (
   setMapLoaded,
   setShowForecastPanel,
   requestRescueAt,
-  setUserLocation // Add this parameter
+  setUserLocation 
 ) => {
   useEffect(() => {
     const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
