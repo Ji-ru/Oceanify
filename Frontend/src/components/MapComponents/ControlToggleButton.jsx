@@ -11,7 +11,7 @@ const ControlToggleButton = ({
   alertsCount,
 }) => {
   return (
-    <div className="fixed flex flex-col gap-4 bottom-4 right-4 sm:top-24 sm:right-4 z-1000">
+    <div className="fixed flex flex-col items-center justify-center gap-4 top-20 right-4 sm:top-24 sm:right-4 z-1000">
       {/* Layers Toggle */}
       <button
         onClick={toggleControlsPanel}
@@ -20,27 +20,27 @@ const ControlToggleButton = ({
         }`}
       >
         {showControlsPanel ? (
-          <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <X className="w-5 h-5 text-white sm:w-6 sm:h-6" />
         ) : (
-          <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <Layers className="w-5 h-5 text-white sm:w-6 sm:h-6" />
         )}
       </button>
 
       {/* Weather Notification Toggle */}
       <button
         onClick={toggleWeatherNotification}
-        className={`p-10 sm:p-4 bg-[#1e1e1e] rounded-full border-1 border-neutral-600 hover:bg-[#272727] transition-all duration-200 ${
+        className={`p-3 sm:p-4 bg-[#1e1e1e] rounded-full border-1 border-neutral-600 hover:bg-[#272727] transition-all duration-200 ${
           showWeatherNotification ? "bg-[#272727]" : ""
         }`}
       >
         <div className="relative">
           {showWeatherNotification ? (
-            <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <X className="w-5 h-5 text-white sm:w-6 sm:h-6" />
           ) : (
             <>
-              <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <Bell className="w-5 h-5 text-white sm:w-6 sm:h-6" />
               {alertsCount > 0 && (
-                <div className="absolute flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 bg-red-500 rounded-full -top-1 -right-1">
+                <div className="absolute flex items-center justify-center w-4 h-4 bg-red-500 rounded-full sm:w-5 sm:h-5 -top-1 -right-1">
                   <span className="text-xs font-bold text-white">
                     {alertsCount}
                   </span>

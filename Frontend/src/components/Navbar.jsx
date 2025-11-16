@@ -68,7 +68,7 @@ const Navbar = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex md:items-center md:gap-4 ">
+        <div className="hidden lg:flex lg:items-center lg:gap-4 ">
           {/* Regular Navigation Links */}
           <div className="flex items-center space-x-6 ">
             {/* Dashboard */}
@@ -98,14 +98,14 @@ const Navbar = () => {
                 <AlertTriangle className="w-4 h-4" /> Alerts
               </Link>
             )}
-
-            <Link
-              to="/activity-logs"
-              className="flex items-center gap-1 font-medium text-white duration-300 text-decoration-none hover:text-white/80"
-            >
-              <Activity className="w-4 h-4" /> Activity Logs
-            </Link>
-
+            {isAdmin && (
+              <Link
+                to="/activity-logs"
+                className="flex items-center gap-1 font-medium text-white duration-300 text-decoration-none hover:text-white/80"
+              >
+                <Activity className="w-4 h-4" /> Activity Logs
+              </Link>
+            )}
             {/* Maps */}
             <Link
               to="/map"
@@ -184,7 +184,7 @@ const Navbar = () => {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="inline-flex items-center justify-center w-10 h-10 p-2 text-gray-500 rounded-lg md:hidden focus:outline-none dark:text-gray-400 "
+          className="inline-flex items-center justify-center w-10 h-10 p-2 text-gray-500 rounded-lg lg:hidden focus:outline-none dark:text-gray-400 "
         >
           <span className="sr-only">Open main menu</span>
           <svg
@@ -206,7 +206,7 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {isOpen && (
-        <div className="p-4 md:hidden bg-[#1f1f1f]">
+        <div className="p-4 lg:hidden bg-[#1f1f1f]">
           {/* CRITICAL: Mobile Rescue Button - Consistent styling */}
           <Link
             to={isAdmin ? "/rescue-management" : "/rescue"}
