@@ -310,17 +310,18 @@ export default function DashboardPage() {
     return { score: 0, level: "Storm" };
   };
 
-  const getDouglasScale = (waveHeight) => {
-    if (waveHeight <= 0.1) return { score: 100, level: "Calm" };
-    if (waveHeight <= 0.5) return { score: 90, level: "Smooth" };
-    if (waveHeight <= 1.25) return { score: 80, level: "Slight" };
-    if (waveHeight <= 2.5) return { score: 60, level: "Moderate" };
-    if (waveHeight <= 4.0) return { score: 40, level: "Rough" };
-    if (waveHeight <= 6.0) return { score: 20, level: "Very Rough" };
-    if (waveHeight <= 9.0) return { score: 10, level: "High" };
+  const getDouglasScale = (waveHeight, swellHeight) => {
+    const effectiveHeight = Math.max(waveHeight, swellHeight || 0);
+
+    if (effectiveHeight <= 0.1) return { score: 100, level: "Calm" };
+    if (effectiveHeight <= 0.5) return { score: 90, level: "Smooth" };
+    if (effectiveHeight <= 1.25) return { score: 80, level: "Slight" };
+    if (effectiveHeight <= 2.5) return { score: 60, level: "Moderate" };
+    if (effectiveHeight <= 4.0) return { score: 40, level: "Rough" };
+    if (effectiveHeight <= 6.0) return { score: 20, level: "Very Rough" };
+    if (effectiveHeight <= 9.0) return { score: 10, level: "High" };
     return { score: 0, level: "Very High" };
   };
-
   const getWeatherRiskLevel = (weatherCode) => {
     // Clear to partly cloudy - safe
     if (weatherCode <= 2) return { score: 100, level: "Clear" };
@@ -508,16 +509,25 @@ export default function DashboardPage() {
       const beaufortLevel = getBeaufortScale(
         weatherData.current.wind_speed_10m
       );
-      const douglasLevel = getDouglasScale(waveData.current.wave_height);
+      const douglasLevel = getDouglasScale(
+        waveData.current.wave_height,
+        waveData.current.swell_wave_height
+      );
       const weatherLevel = getWeatherRiskLevel(
         weatherData.current.weather_code
       );
 
-      // Combine scales with weights
+      // Consider secondary swell if significant
+      let swellFactor = 1.0;
+      if (waveData.current.secondary_swell_wave_height > 1.0) {
+        swellFactor = 0.8; // Reduce safety score with significant secondary swell
+      }
+
       const safetyScore =
-        beaufortLevel.score * 0.4 +
-        douglasLevel.score * 0.4 +
-        weatherLevel.score * 0.2;
+        (beaufortLevel.score * 0.4 +
+          douglasLevel.score * 0.4 +
+          weatherLevel.score * 0.2) *
+        swellFactor;
 
       return {
         score: Math.round(safetyScore / 10), // Divide by 10 to get 0-10 scale
@@ -526,6 +536,7 @@ export default function DashboardPage() {
           wind: beaufortLevel,
           waves: douglasLevel,
           weather: weatherLevel,
+          swellFactor: swellFactor,
         },
       };
     } catch (error) {
@@ -536,61 +547,73 @@ export default function DashboardPage() {
 
   // Seafarer advisory based on current conditions
   const getSeaAdvisory = () => {
-    try {
-      if (!weatherData || !waveData)
-        return { severity: "unknown", message: "--" };
+  try {
+    if (!weatherData || !waveData)
+      return { severity: "unknown", message: "--" };
 
-      const wind = weatherData.current?.wind_speed_10m ?? 0; // km/h
-      const gusts = weatherData.current?.wind_gusts_10m ?? 0; // km/h
-      const waves = waveData.current?.wave_height ?? 0; // m
-      const swell = waveData.current?.swell_wave_height ?? 0; // m
-      const code = weatherData.current?.weather_code ?? 0;
-      const isFog = code === 45 || code === 48;
-      const isHeavyRain = code >= 61; // rain and above
+    const wind = weatherData.current?.wind_speed_10m ?? 0; // km/h
+    const gusts = weatherData.current?.wind_gusts_10m ?? 0; // km/h
+    const waves = waveData.current?.wave_height ?? 0; // m
+    const swell = waveData.current?.swell_wave_height ?? 0; // m
+    const secondarySwell = waveData.current?.secondary_swell_wave_height ?? 0; // m
+    const swellPeriod = waveData.current?.secondary_swell_wave_period ?? 0; // s
+    const code = weatherData.current?.weather_code ?? 0;
+    const isFog = code === 45 || code === 48;
+    const isHeavyRain = code >= 61; // rain and above
 
-      // Danger conditions (do not sail)
-      if (waves >= 3.0 || gusts >= 60 || code >= 80) {
-        return {
-          severity: "danger",
-          message:
-            "Danger: Very rough seas or severe weather. Small boats should not depart.",
-        };
-      }
+    // Consider complex sea states with multiple swell systems
+    const totalSwellEffect = swell + (secondarySwell * 0.7); // Secondary swell has less impact
+    const isComplexSeas = secondarySwell > 0.5 && swell > 1.0;
 
-      // Caution conditions (experienced only / coastal)
-      if (waves >= 2.0 || wind >= 35 || isHeavyRain || isFog) {
-        let reasons = [];
-        if (waves >= 2.0) reasons.push("waves 2.0m+");
-        if (wind >= 35) reasons.push("strong wind 35+ km/h");
-        if (isHeavyRain) reasons.push("rain reduces visibility");
-        if (isFog) reasons.push("fog conditions");
-        return {
-          severity: "caution",
-          message: `Caution: ${reasons.join(
-            ", "
-          )}. Stay near shore and monitor updates.`,
-        };
-      }
+    // Danger conditions (do not sail)
+    if (waves >= 3.0 || totalSwellEffect >= 3.0 || gusts >= 60 || code >= 80) {
+      let reasons = [];
+      if (waves >= 3.0) reasons.push("very rough seas");
+      if (totalSwellEffect >= 3.0) reasons.push("dangerous swell conditions");
+      if (gusts >= 60) reasons.push("storm-force gusts");
+      if (code >= 80) reasons.push("severe weather");
+      
+      return {
+        severity: "danger",
+        message: `Danger: ${reasons.join(", ")}. Small boats should not depart.`,
+      };
+    }
 
-      // Generally okay
-      if (waves <= 1.5 && wind <= 25 && !isHeavyRain && !isFog) {
-        return {
-          severity: "ok",
-          message:
-            "Good conditions: Light-to-moderate winds and low waves. Keep standard safety gear.",
-        };
-      }
-
-      // Default moderate
+    // Caution conditions (experienced only / coastal)
+    if (waves >= 2.0 || totalSwellEffect >= 1.5 || wind >= 35 || isHeavyRain || isFog || isComplexSeas) {
+      let reasons = [];
+      if (waves >= 2.0) reasons.push("waves 2.0m+");
+      if (totalSwellEffect >= 1.5) reasons.push("significant swell");
+      if (wind >= 35) reasons.push("strong wind 35+ km/h");
+      if (isHeavyRain) reasons.push("rain reduces visibility");
+      if (isFog) reasons.push("fog conditions");
+      if (isComplexSeas) reasons.push("multiple swell systems");
+      
       return {
         severity: "caution",
-        message:
-          "Moderate conditions: Check equipment and local advisories before departure.",
+        message: `Caution: ${reasons.join(
+          ", "
+        )}. Stay near shore and monitor updates.`,
       };
-    } catch (e) {
-      return { severity: "unknown", message: "--" };
     }
-  };
+
+    // Generally okay
+    if (waves <= 1.5 && totalSwellEffect <= 1.0 && wind <= 25 && !isHeavyRain && !isFog) {
+      return {
+        severity: "ok",
+        message: "Good conditions: Light-to-moderate winds and low waves. Keep standard safety gear.",
+      };
+    }
+
+    // Default moderate
+    return {
+      severity: "caution",
+      message: "Moderate conditions: Check equipment and local advisories before departure.",
+    };
+  } catch (e) {
+    return { severity: "unknown", message: "--" };
+  }
+};
 
   // Loading state
   if (loading) {
@@ -680,7 +703,6 @@ export default function DashboardPage() {
 
       {/* Tab Content */}
       <div className="space-y-3">
-
         {selectedAlertTab === "fishing" && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 mb-3">
@@ -973,20 +995,41 @@ export default function DashboardPage() {
                   <Waves className="w-5 h-5 text-cyan-400" />
                   Wave Conditions
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                   {[
                     {
-                      label: "Primary Swell Height",
+                      label: "Wave Height",
                       value: formatValue(
                         waveData?.current?.wave_height,
                         " m",
                         1
                       ),
+                      description: "Total wave height",
+                      icon: <Waves className="w-4 h-4 text-cyan-400" />,
                     },
                     {
-                      label: "Primary Swell Direction",
+                      label: "Wave Direction",
                       value: degToCompass(waveData?.current?.wave_direction),
-                      icon: <Compass className="w-4 h-4" />,
+                      description: "Primary wave direction",
+                      icon: <Compass className="w-4 h-4 text-blue-400" />,
+                    },
+                    {
+                      label: "Swell Height",
+                      value: formatValue(
+                        waveData?.current?.swell_wave_height,
+                        " m",
+                        1
+                      ),
+                      description: "Primary swell height",
+                      icon: <Waves className="w-4 h-4 text-green-400" />,
+                    },
+                    {
+                      label: "Swell Direction",
+                      value: degToCompass(
+                        waveData?.current?.swell_wave_direction
+                      ),
+                      description: "Primary swell direction",
+                      icon: <Compass className="w-4 h-4 text-purple-400" />,
                     },
                     {
                       label: "Secondary Swell Height",
@@ -995,6 +1038,8 @@ export default function DashboardPage() {
                         " m",
                         1
                       ),
+                      description: "Secondary swell system",
+                      icon: <Waves className="w-4 h-4 text-yellow-400" />,
                     },
                     {
                       label: "Secondary Swell Period",
@@ -1003,19 +1048,75 @@ export default function DashboardPage() {
                         "s",
                         1
                       ),
+                      description: "Secondary swell period",
+                      icon: <Clock className="w-4 h-4 text-orange-400" />,
                     },
                   ].map((item, index) => (
-                    <div key={index} className="p-3 rounded-lg bg-[#272727]">
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <div
+                      key={index}
+                      className="p-4 rounded-lg bg-[#272727] hover:bg-[#2d2d2d] transition-colors duration-200"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
                         {item.icon}
-                        {item.label}
+                        <div className="text-sm font-medium text-gray-300">
+                          {item.label}
+                        </div>
                       </div>
-                      <div className="text-lg font-semibold text-white">
+                      <div className="text-xl font-bold text-white mb-1">
                         {item.value}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {item.description}
                       </div>
                     </div>
                   ))}
                 </div>
+                {/* Wave Summary Card */}
+                {waveData?.current && (
+                  <div className="mt-6 p-4 bg-gradient-to-r from-cyan-900/20 to-blue-900/20 rounded-xl border border-cyan-500/20">
+                    <h4 className="flex items-center gap-2 mb-3 text-sm font-semibold text-white">
+                      <Waves className="w-4 h-4 text-blue-500" />
+                      Wave Summary
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div className="text-cyan-200">Primary Swell</div>
+                        <div className="text-white">
+                          {formatValue(
+                            waveData.current.swell_wave_height,
+                            "m",
+                            1
+                          )}{" "}
+                          from{" "}
+                          {degToCompass(waveData.current.swell_wave_direction)}
+                        </div>
+                      </div>
+                      {waveData.current.secondary_swell_wave_height > 0 && (
+                        <div>
+                          <div className="text-cyan-200">Secondary Swell</div>
+                          <div className="text-white">
+                            {formatValue(
+                              waveData.current.secondary_swell_wave_height,
+                              "m",
+                              1
+                            )}{" "}
+                            from {degToCompass(waveData.current.wave_direction)}
+                          </div>
+                        </div>
+                      )}
+                      <div className="col-span-2">
+                        <div className="text-cyan-200">Total Wave Height</div>
+                        <div className="text-lg font-bold text-white">
+                          {formatValue(
+                            waveData.current.wave_height,
+                            " meters",
+                            1
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Atmospheric Conditions */}
