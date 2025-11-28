@@ -108,13 +108,21 @@ export const useWeatherData = () => {
         result = await fetchWaveData(lat, lng);
       }
 
-      // Cache only if we actually fetched something
-      if (result) {
+      // Cache only if we actually fetched valid data with non-null wave values
+      if (result && result.current && (result.current.wave_height !== null && result.current.wave_height !== undefined)) {
         try {
           localStorage.setItem(cacheKey, JSON.stringify(result));
           localStorage.setItem(`${cacheKey}-time`, Date.now());
         } catch (_) {
           // ignore quota errors
+        }
+      } else if (!result || (result && result.current && result.current.wave_height === null)) {
+        // Clear cache if API failed or returned null wave data
+        try {
+          localStorage.removeItem(cacheKey);
+          localStorage.removeItem(`${cacheKey}-time`);
+        } catch (_) {
+          // ignore
         }
       }
 

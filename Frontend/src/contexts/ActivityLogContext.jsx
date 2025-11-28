@@ -1,7 +1,7 @@
 // src/contexts/ActivityLogContext.jsx
-import { createContext, useContext, useState, useCallback } from 'react';
-import API from '../api';
 import { createClient } from "@supabase/supabase-js";
+import { createContext, useCallback, useContext, useState } from 'react';
+import API from '../api';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -45,11 +45,22 @@ export const ActivityLogProvider = ({ children }) => {
     console.log('🔄 Fetching activity logs from API...');
 
     try {
+      console.log('🔄 Fetching activity logs from API...');
       const params = limit ? { limit } : {};
       const response = await API.get('/activity-logs', { params });
-      setLogs(response.data);
+      console.log('✅ API Response received:', response);
+      console.log('✅ Response data:', response.data);
+      console.log('✅ Data type:', typeof response.data, Array.isArray(response.data) ? 'is array' : 'not array');
+
+      // Validate response data
+      if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
+        console.log('❌ API returned HTML instead of JSON, trying Supabase fallback');
+        throw new Error('API returned HTML');
+      }
+
+      setLogs(Array.isArray(response.data) ? response.data : []);
       setLastFetched(Date.now());
-      console.log('✅ Activity logs fetched successfully');
+      console.log('✅ Activity logs set successfully');
     } catch (error) {
       console.error("Failed to fetch logs from Laravel:", error);
       

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { getAccounts, createAccount, updateAccount, deleteAccount } from "../services/accountService";
+import { useEffect, useState } from "react";
+import { createAccount, deleteAccount, getAccounts, updateAccount } from "../services/accountService";
 
 const AccountManager = () => {
   const [accounts, setAccounts] = useState([]);
@@ -11,8 +11,10 @@ const AccountManager = () => {
 
   const loadAccounts = async () => {
     try {
-      setAccounts(getAccounts);
+      const data = await getAccounts();
+      setAccounts(data);
     } catch (error) {
+      console.error("Error loading accounts:", error);
     }
   };
 

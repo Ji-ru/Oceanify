@@ -1,15 +1,16 @@
 import axios from "axios";
 import supabase from "./supabaseClient";
 
-// Prefer environment variable; fallback to same-origin "/api" when deployed behind a reverse proxy
-// For Vite, define VITE_API_BASE_URL in your .env files
-const baseURL = (import.meta?.env?.VITE_API_BASE_URL || "").trim() || `${window.location.origin}/api`;
+// Prefer environment variable; fallback to localhost for development
+// For production, VITE_API_BASE_URL must be set to deployed backend URL
+const baseURL = (import.meta?.env?.VITE_API_BASE_URL || "").trim() || 'http://localhost:8000/api';
 
 const API = axios.create({
   baseURL,
 });
 
-console.log("Base URL:", import.meta.env.VITE_API_BASE_URL);
+console.log("VITE_API_BASE_URL env:", import.meta.env.VITE_API_BASE_URL);
+console.log("Final API baseURL:", baseURL);
 
 // ✅ Add request interceptor to include user info in headers
 API.interceptors.request.use(

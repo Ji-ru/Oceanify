@@ -1,6 +1,12 @@
 // contexts/AccountContext.jsx
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import { createClient } from "@supabase/supabase-js";
+import { createContext, useCallback, useContext, useState } from 'react';
 import apiClient from '../utils/apiClient'; // ✅ Changed from axios
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const AccountContext = createContext();
 
@@ -17,7 +23,7 @@ export const AccountProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [lastFetch, setLastFetch] = useState(null);
 
-  const loadAccounts = async (forceRefresh = false) => {
+  const loadAccounts = useCallback(async (forceRefresh = false) => {
     // Only fetch if we haven't fetched yet or force refresh
     if (!forceRefresh && accounts.length > 0) {
       return;
@@ -27,14 +33,40 @@ export const AccountProvider = ({ children }) => {
     try {
       // ✅ Using apiClient instead of axios
       const response = await apiClient.get("/accounts");
-      setAccounts(response.data);
+      console.log('AccountContext response:', response);
+      console.log('AccountContext data:', response.data);
+
+      // Validate response data
+      if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
+        console.log('❌ Account API returned HTML instead of JSON');
+        throw new Error('API returned HTML');
+      }
+
+      setAccounts(Array.isArray(response.data) ? response.data : []);
       setLastFetch(new Date());
     } catch (error) {
-      console.error("Error loading accounts:", error);
+      console.error("Error loading accounts from Laravel:", error);
+
+      // Fallback to Supabase
+      try {
+        const { data: supabaseData, error: supabaseError } = await supabase
+          .from("profiles") // Table name is 'profiles'
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (supabaseError) throw supabaseError;
+        if (supabaseData) {
+          setAccounts(supabaseData);
+          setLastFetch(new Date());
+          console.log('✅ Accounts loaded from Supabase fallback');
+        }
+      } catch (supabaseError) {
+        console.error("Error loading accounts from Supabase:", supabaseError);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [accounts.length]);
 
   const addAccount = (account) => {
     setAccounts(prev => [...prev, account]);

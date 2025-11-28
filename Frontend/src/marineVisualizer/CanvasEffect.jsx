@@ -1,3 +1,4 @@
+//Retrieve data
 // src/components/MarineVisualizer/canvasEffect.js
 
 let animationId = null;

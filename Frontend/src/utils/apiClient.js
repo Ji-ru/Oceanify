@@ -2,8 +2,12 @@ import axios from 'axios';
 import supabase from '../supabaseClient';
 
 // Create axios instance
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+console.log("apiClient baseURL:", baseURL);
+console.log("VITE_API_URL env:", import.meta.env.VITE_API_URL);
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },

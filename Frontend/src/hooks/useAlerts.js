@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export const useAlerts = () => {
   const [alerts, setAlerts] = useState([]);
@@ -10,7 +10,9 @@ export const useAlerts = () => {
       try {
         console.log("🔄 Fetching alerts from Laravel...");
         
-        const response = await fetch("http://localhost:8000/api/alerts", {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+        console.log('useAlerts API URL:', apiUrl);
+        const response = await fetch(`${apiUrl}/alerts`, {
           method: "GET",
           headers: {
             Accept: "application/json",
@@ -19,10 +21,12 @@ export const useAlerts = () => {
         });
 
         console.log("📡 Response status:", response.status);
+        console.log("📡 Response headers:", Object.fromEntries(response.headers.entries()));
 
         if (response.ok) {
           const data = await response.json();
           console.log("✅ Alerts fetched successfully:", data);
+          console.log("✅ Data type:", typeof data, Array.isArray(data) ? "is array" : "not array");
           setAlerts(Array.isArray(data) ? data : []);
           setError(null);
         } else {
